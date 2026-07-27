@@ -1,28 +1,30 @@
 package price_service.providers;
 
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Value;
-
-// import java.math.BigDecimal;
-
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-// import price_service.dto.TempLatestPriceDTO;
+import lombok.RequiredArgsConstructor;
+import price_service.dto.TwelveDataPriceResponse;
+
 
 @Service
-public class TwelveDataProvider {
+@RequiredArgsConstructor
+public class TwelveDataProvider implements PriceProvider {
 
     @Value("${twelvedata.baseurl}")
-    public String BaseUrl;
+    private String BaseUrl;
 
     @Value("${twelvedata.apikey}")
-    public String apikey;
+    private String apikey;
     
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public String getLatestPrice(String symbol) {
+    @Override
+    public BigDecimal getCurrentPrice(String symbol) {
         String url = BaseUrl + "/price?symbol=" + symbol + "&apikey="+ apikey;
-        return restTemplate.getForObject(url, String.class);
+        return restTemplate.getForObject(url, TwelveDataPriceResponse.class).price();
     }
 
 }
