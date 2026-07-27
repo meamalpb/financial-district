@@ -5,6 +5,10 @@ spring:
   application:
     name: price-service
 
+twelvedata:
+  apikey: "5c567681399a406ea8c96eb81d1fdec9"
+  baseurl: "https://api.twelvedata.com/"
+
 eureka:
   client:
     service-url:
