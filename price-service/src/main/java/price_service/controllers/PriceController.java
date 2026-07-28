@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import price_service.dto.PriceResponse;
+import price_service.models.Quote;
 import price_service.services.PriceService;
 
 @RestController
@@ -21,5 +22,10 @@ public class PriceController {
         return new PriceResponse(
                 symbol,
                 priceService.twelveDataGetCurrentPrice(symbol));
+    }
+
+    @GetMapping("/quote/{symbol}")
+    public Quote getQuote(@PathVariable String symbol) {
+        return priceService.twelveDataGetQuote(symbol);
     }
 }

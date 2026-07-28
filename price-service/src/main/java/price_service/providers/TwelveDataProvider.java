@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import lombok.RequiredArgsConstructor;
+import price_service.dto.QuoteResponse;
 import price_service.dto.TwelveDataPriceResponse;
 
 
@@ -25,6 +26,11 @@ public class TwelveDataProvider implements PriceProvider {
     public BigDecimal getCurrentPrice(String symbol) {
         String url = BaseUrl + "/price?symbol=" + symbol + "&apikey="+ apikey;
         return restTemplate.getForObject(url, TwelveDataPriceResponse.class).price();
+    }
+
+    public QuoteResponse getQuote(String symbol) {
+        String url = BaseUrl + "/quote?symbol=" + symbol + "&apikey="+ apikey;
+        return restTemplate.getForObject(url, QuoteResponse.class);
     }
 
 }
