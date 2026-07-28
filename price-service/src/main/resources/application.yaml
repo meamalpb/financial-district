@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: price-service
+  data:
+    mongodb:
+      uri: "mongodb+srv://ampb:m6dCLkvP6eK87WhI@financial-district.nutkky4.mongodb.net/?appName=Financial-district"
+      database: financial-district
 
 twelvedata:
   apikey: "5c567681399a406ea8c96eb81d1fdec9"
@@ -13,3 +17,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+logging:
+  level:
+    org.springframework.boot.autoconfigure.mongo: DEBUG
+    org.springframework.data.mongodb: DEBUG
