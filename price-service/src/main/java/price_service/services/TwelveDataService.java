@@ -1,6 +1,7 @@
 package price_service.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
@@ -22,10 +23,15 @@ public class TwelveDataService {
         return twelveDataProvider.getCurrentPrice(symbol);
     }
 
-    public Quote GetQuote(String symbol) {
-        QuoteResponse quoteResponse = twelveDataProvider.getQuote(symbol);
-        Quote quote = quoteMapper.toEntity(quoteResponse);
-        return quoteRepository.save(quote);
+    public Quote getQuote(String symbol) {
+    return quoteRepository.findTopBySymbolOrderByCreatedAtDesc(symbol)
+            .filter(quote ->
+                    quote.getCreatedAt().isAfter(LocalDateTime.now().minusHours(12)))
+            .orElseGet(() -> {
+                QuoteResponse quoteResponse = twelveDataProvider.getQuote(symbol);
+                Quote quote = quoteMapper.toEntity(quoteResponse);
+                return quoteRepository.save(quote);
+            });
     }
 
 }

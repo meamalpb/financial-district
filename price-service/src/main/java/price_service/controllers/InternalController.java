@@ -6,25 +6,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import price_service.dto.PriceResponse;
 import price_service.models.Quote;
 import price_service.services.PriceService;
 
 @RestController
-@RequestMapping("/prices")
+@RequestMapping("/internal")
 @RequiredArgsConstructor
-public class PriceController {
+public class InternalController {
 
     private final PriceService priceService;
 
-    @GetMapping("/{symbol}")
-    public PriceResponse getLatestPrice(@PathVariable String symbol) {
-        return new PriceResponse(
-                symbol,
-                priceService.twelveDataGetCurrentPrice(symbol));
-    }
-
-    @GetMapping("/quote/{symbol}")
+    @GetMapping("/prices/{symbol}")
     public Quote getQuote(@PathVariable String symbol) {
         return priceService.twelveDataGetQuote(symbol);
     }

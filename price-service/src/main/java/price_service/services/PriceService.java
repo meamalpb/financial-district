@@ -18,6 +18,6 @@ public class PriceService {
     }
 
     public Quote twelveDataGetQuote(String symbol) {
-        return twelveDataService.GetQuote(symbol);
+        return twelveDataService.getQuote(symbol);
     }
 }
