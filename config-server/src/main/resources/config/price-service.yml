@@ -1,0 +1,20 @@
+server:
+  port: 8083
+
+spring:
+  data:
+    mongodb:
+      uri: "mongodb+srv://ampb:m6dCLkvP6eK87WhI@financial-district.nutkky4.mongodb.net/?appName=Financial-district"
+      database: financial-district
+
+twelvedata:
+  apikey: "5c567681399a406ea8c96eb81d1fdec9"
+  baseurl: "https://api.twelvedata.com/"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+custom:
+  price-refresh: 1d
