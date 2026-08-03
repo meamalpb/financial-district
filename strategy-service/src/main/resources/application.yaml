@@ -1,9 +1,11 @@
 spring:
   application:
     name: strategy-service
-
-server:
-  port: 8084
+  config:
+    import: "configserver:http://localhost:8888"
+  cloud:
+    config:
+      fail-fast: true
 
 eureka:
   client:
