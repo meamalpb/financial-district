@@ -1,10 +1,10 @@
-package portfolio_service;
+package ledger_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PortfolioServiceApplicationTests {
+class LedgerServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
