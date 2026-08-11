@@ -1,2 +1,8 @@
 server:
   port: 8085
+
+spring:
+  data:
+    mongodb:
+      uri: "mongodb+srv://ampb:m6dCLkvP6eK87WhI@financial-district.nutkky4.mongodb.net/?appName=Financial-district"
+      database: financial-district
