@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import ledger_service.dto.BuyRequest;
@@ -19,6 +21,12 @@ public class LedgerService {
 
     private final ManAccountRepository manAccountRepository;
     private final TransactionRepository transactionRepository;
+
+    public ManAccount getAccount(String manId) {
+        return manAccountRepository.findByManId(manId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No account found for manId: " + manId));
+    }
 
     public ManAccount applyBuy(BuyRequest request) {
         ManAccount account = manAccountRepository.findByManId(request.manId())

@@ -1,5 +1,7 @@
 package ledger_service.controllers;
 
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +18,11 @@ import ledger_service.services.LedgerService;
 public class InternalController {
 
     private final LedgerService ledgerService;
+
+    @GetMapping("/accounts/{manId}")
+    public ManAccount getAccount(@PathVariable String manId) {
+        return ledgerService.getAccount(manId);
+    }
 
     @PostMapping("/buy")
     public ManAccount buy(@RequestBody BuyRequest request) {
