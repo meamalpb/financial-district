@@ -6,7 +6,9 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import strategy_service.clients.LedgerServiceClient;
 import strategy_service.clients.PriceServiceClient;
+import strategy_service.dto.LedgerAccountResponse;
 import strategy_service.events.BuyDecision;
 import strategy_service.models.ManConfig;
 import strategy_service.strategies.AlwaysBuyStrategy;
@@ -16,10 +18,12 @@ import strategy_service.strategies.Strategy;
 public class StrategyEngineService {
 
     private final PriceServiceClient priceServiceClient;
+    private final LedgerServiceClient ledgerServiceClient;
 
     @Autowired
-    public StrategyEngineService(PriceServiceClient priceServiceClient) {
+    public StrategyEngineService(PriceServiceClient priceServiceClient, LedgerServiceClient ledgerServiceClient) {
         this.priceServiceClient = priceServiceClient;
+        this.ledgerServiceClient = ledgerServiceClient;
     }
 
     // TEMP: hardcoded Man config, standing in for ManConfigRepository until Mongo is wired in
@@ -48,6 +52,12 @@ public class StrategyEngineService {
         BuyDecision decision = strategy.decide(manConfig, currentPrice);
 
         System.out.println("Decision for " + manConfig.getManId() + ": " + decision);
+
+        if (decision.isShouldBuy()) {
+            LedgerAccountResponse account = ledgerServiceClient.applyBuy(decision);
+            System.out.println("Ledger updated for " + manConfig.getManId() + ": " + account);
+        }
+
         return decision;
     }
 }
