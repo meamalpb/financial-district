@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts all microservices in dependency order:
-#   discovery-server -> config-server -> (price-service, strategy-service)
+#   discovery-server -> config-server -> (price-service, ledger-service, strategy-service)
 # Logs go to logs/<service>.log, PIDs to .pids/<service>.pid.
 # Use ./stop-all.sh to stop everything.
 set -euo pipefail
@@ -39,6 +39,7 @@ start_service config-server config-server
 wait_for_port 8888 config-server
 
 start_service price-service price-service
+start_service ledger-service ledger-service
 start_service strategy-service strategy-service
 
 echo "All services starting. Logs: $LOG_DIR  PIDs: $PID_DIR"
