@@ -22,6 +22,13 @@ We are deliberately building the dumbest possible version first to prove the pip
 
 Do not build dip logic, selling logic, multi-Man comparison views, or additional assets until explicitly asked — these are intentionally deferred.
 
+## Future direction 
+
+Noted here so future work has the right shape in mind, but nothing below should be built until explicitly asked. The "Current build scope" and "What NOT to do" sections above still govern what to actually implement.
+
+- **Historical backfill**: plan is to pull years of daily OHLC history (a handful of stocks to start) via price-service's planned Alpha Vantage historical provider, stored in the `price_history` Mongo collection (already named in the data flow diagram below) separate from the live `quotes` cache. At daily granularity this is a small dataset (thousands of rows, not a big-data problem) — one Alpha Vantage `TIME_SERIES_DAILY` call per symbol covers years of history. This backfill is what Man 2's backtesting would eventually read from.
+- **Hand-written simulations**: beyond Man 1/Man 2, the intent is to hand-write simulations against this historical data, including real-world factors that eat into profit — taxation being the first example (capital gains treatment, holding-period thresholds, wash sales, etc.). The expected shape: this is a **post-hoc analytics-layer concern**, computed by reading Ledger's existing transaction history (timestamps, cost basis, realized/unrealized amounts) — not logic baked into a Man's frozen strategy or into Ledger's core mutation path. Keeps it consistent with "Men are frozen and independent."
+
 ## Architecture
 
 Spring Boot microservices, Docker Compose (no Kubernetes/orchestration needed), Eureka for service discovery, Spring Cloud Config Server for centralized config, MongoDB (managed, e.g. Atlas) for storage. Kafka is the intended transport between Strategy Engine and Ledger, but **is not wired in yet** — currently using direct REST calls as a temporary stand-in (see "Known temporary stand-ins" below).

@@ -25,6 +25,27 @@ wait_for_port() {
   exit 1
 }
 
+# A service's port opening doesn't mean it's visible to other services yet:
+# Eureka clients pull the registry once at startup, then only every 30s
+# after that. Waiting on TCP alone lets a caller boot and cache a registry
+# snapshot taken before this service's registration lands, leaving it
+# blind to that instance for up to 30s. Poll Eureka's own REST API instead
+# so we wait for the actual condition callers depend on.
+wait_for_eureka_instance() {
+  local eureka_app=$1 name=$2
+  echo "Waiting for $name to register with Eureka..."
+  for _ in $(seq 1 60); do
+    if curl -sf -H "Accept: application/json" "http://localhost:8761/eureka/apps/$eureka_app" \
+        | grep -q '"status":"UP"'; then
+      echo "$name is registered with Eureka."
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Timed out waiting for $name to register with Eureka" >&2
+  exit 1
+}
+
 start_service() {
   local name=$1 dir=$2
   echo "Starting $name..."
@@ -40,7 +61,12 @@ wait_for_port 8888 config-server
 
 start_service price-service price-service
 start_service ledger-service ledger-service
+
+wait_for_eureka_instance PRICE-SERVICE price-service
+wait_for_eureka_instance LEDGER-SERVICE ledger-service
+
 start_service strategy-service strategy-service
+wait_for_eureka_instance STRATEGY-SERVICE strategy-service
 
 echo "All services starting. Logs: $LOG_DIR  PIDs: $PID_DIR"
 echo "Run ./stop-all.sh to stop everything."
