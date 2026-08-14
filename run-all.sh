@@ -10,6 +10,14 @@ LOG_DIR="$ROOT_DIR/logs"
 PID_DIR="$ROOT_DIR/.pids"
 mkdir -p "$LOG_DIR" "$PID_DIR"
 
+if [[ ! -f "$ROOT_DIR/.env" ]]; then
+  echo "Missing .env file at $ROOT_DIR/.env — copy .env.example to .env and fill in real values." >&2
+  exit 1
+fi
+set -o allexport
+source "$ROOT_DIR/.env"
+set +o allexport
+
 wait_for_port() {
   local port=$1 name=$2
   echo "Waiting for $name on port $port..."

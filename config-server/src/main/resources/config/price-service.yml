@@ -4,11 +4,11 @@ server:
 spring:
   data:
     mongodb:
-      uri: "mongodb+srv://ampb:m6dCLkvP6eK87WhI@financial-district.nutkky4.mongodb.net/?appName=Financial-district"
+      uri: "${MONGODB_URI}"
       database: financial-district
 
 twelvedata:
-  apikey: "5c567681399a406ea8c96eb81d1fdec9"
+  apikey: "${TWELVEDATA_API_KEY}"
   baseurl: "https://api.twelvedata.com/"
 
 eureka:

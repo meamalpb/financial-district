@@ -18,6 +18,21 @@ See [claude.md](claude.md) for full architecture, design philosophy, and current
 
 Ports are defined in each service's `application.yml`/`application.yaml`, except price-service, strategy-service, and ledger-service, whose ports are centralized in `config-server/src/main/resources/config/*.yml` (served via Spring Cloud Config).
 
+## Configuration
+
+Secrets (Mongo URI, Twelve Data API key) are not committed. Copy `.env.example` to `.env` in the repo root and fill in real values:
+
+```
+cp .env.example .env
+```
+
+| Variable | Used by | Description |
+|---|---|---|
+| `MONGODB_URI` | price-service, ledger-service | MongoDB Atlas connection string |
+| `TWELVEDATA_API_KEY` | price-service | Twelve Data API key |
+
+`run-all.sh` loads `.env` and exports these into the environment before starting services, since `config-server/src/main/resources/config/*.yml` references them as `${MONGODB_URI}` / `${TWELVEDATA_API_KEY}` placeholders (resolved client-side against each service's own environment).
+
 ## Running locally
 
 ```
