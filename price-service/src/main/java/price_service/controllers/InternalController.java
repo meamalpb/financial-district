@@ -2,6 +2,7 @@ package price_service.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,5 +20,10 @@ public class InternalController {
     @GetMapping("/prices/{symbol}")
     public Quote getQuote(@PathVariable String symbol) {
         return priceService.twelveDataGetQuote(symbol);
+    }
+
+    @PostMapping("/prices/{symbol}/backfill")
+    public int backfillPriceHistory(@PathVariable String symbol) {
+        return priceService.backfillPriceHistory(symbol);
     }
 }

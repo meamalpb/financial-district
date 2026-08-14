@@ -12,6 +12,7 @@ import price_service.models.Quote;
 public class PriceService {
 
     private final TwelveDataService twelveDataService;
+    private final PriceHistoryService priceHistoryService;
 
     public BigDecimal twelveDataGetCurrentPrice(String symbol) {
         return twelveDataService.getCurrentPrice(symbol);
@@ -19,5 +20,9 @@ public class PriceService {
 
     public Quote twelveDataGetQuote(String symbol) {
         return twelveDataService.getQuote(symbol);
+    }
+
+    public int backfillPriceHistory(String symbol) {
+        return priceHistoryService.backfill(symbol);
     }
 }
