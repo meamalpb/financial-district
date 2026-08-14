@@ -26,7 +26,7 @@ Do not build dip logic, selling logic, multi-Man comparison views, or additional
 
 Noted here so future work has the right shape in mind, but nothing below should be built until explicitly asked. The "Current build scope" and "What NOT to do" sections above still govern what to actually implement.
 
-- **Historical backfill**: plan is to pull years of daily OHLC history (a handful of stocks to start) via price-service's planned Alpha Vantage historical provider, stored in the `price_history` Mongo collection (already named in the data flow diagram below) separate from the live `quotes` cache. At daily granularity this is a small dataset (thousands of rows, not a big-data problem) — one Alpha Vantage `TIME_SERIES_DAILY` call per symbol covers years of history. This backfill is what Man 2's backtesting would eventually read from.
+- **Historical backfill**: plan is to pull years of daily OHLC history (a handful of stocks to start, SPY first) via price-service's Twelve Data historical client (`TwelveDataProvider.getDailyHistory`, `time_series` endpoint), stored in the `price_history` Mongo collection (already named in the data flow diagram below) separate from the live `quotes` cache. At daily granularity this is a small dataset (thousands of rows, not a big-data problem). Alpha Vantage was evaluated and rejected: its free tier caps `TIME_SERIES_DAILY` at 100 bars (`outputsize=full` is a paywalled premium feature). Twelve Data's `time_series` endpoint (same key already used for live quotes) caps each call at 5000 bars, so full-history backfill requires pagination via `end_date` (confirmed: SPY's full 1993–present history takes exactly 2 paginated calls, 8442 bars total, well within free-tier rate limits). This backfill is what Man 2's backtesting would eventually read from.
 - **Hand-written simulations**: beyond Man 1/Man 2, the intent is to hand-write simulations against this historical data, including real-world factors that eat into profit — taxation being the first example (capital gains treatment, holding-period thresholds, wash sales, etc.). The expected shape: this is a **post-hoc analytics-layer concern**, computed by reading Ledger's existing transaction history (timestamps, cost basis, realized/unrealized amounts) — not logic baked into a Man's frozen strategy or into Ledger's core mutation path. Keeps it consistent with "Men are frozen and independent."
 
 ## Architecture
@@ -39,7 +39,7 @@ Spring Boot microservices, Docker Compose (no Kubernetes/orchestration needed), 
 |---|---|---|
 | **discovery-service** | Built | Eureka server |
 | **config-server** | Built | Centralized config for all services |
-| **price-service** | Built | Only service allowed to call external stock APIs. Currently wraps Twelve Data's quote endpoint, caches results in Mongo (`quotes` collection), serves via `GET /internal/prices/{symbol}`. Alpha Vantage historical backfill provider planned but not yet built. |
+| **price-service** | Built | Only service allowed to call external stock APIs. Currently wraps Twelve Data's quote endpoint, caches results in Mongo (`quotes` collection), serves via `GET /internal/prices/{symbol}`. Twelve Data historical client (`TwelveDataProvider.getDailyHistory`, `time_series` endpoint) and `PriceHistory`/`PriceHistoryRepository` model exist; the backfill orchestration (paginate + idempotently persist to `price_history`) is not yet built. |
 | **strategy-service** | In progress | Reads Man config, fetches price from price-service, applies a `Strategy` implementation, produces a `BuyDecision`. Currently exposes `GET /internal/run-temp-man` to manually trigger one cycle for Temp Man. |
 | **ledger-service** | In progress | Source of truth for each Man's money: bank balance, transactions, shares owned, cost basis, market value. Only service allowed to mutate this state. |
 | **analytics-service** | Not started | Read-only aggregation over Ledger data into graph-ready time series (cost basis vs market value, gain/loss %). |
@@ -48,7 +48,7 @@ Spring Boot microservices, Docker Compose (no Kubernetes/orchestration needed), 
 ### Data flow (target end state)
 
 ```
-[External APIs: Alpha Vantage (historical) / Twelve Data (live)]
+[External APIs: Twelve Data (live quotes + historical time_series)]
         │
         ▼
 [price-service] → stores → (quotes / price_history in Mongo)
