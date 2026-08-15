@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import ledger_service.dto.AccountResponse;
 import ledger_service.dto.BuyRequest;
 import ledger_service.models.ManAccount;
 import ledger_service.models.Transaction;
@@ -22,13 +23,14 @@ public class LedgerService {
     private final ManAccountRepository manAccountRepository;
     private final TransactionRepository transactionRepository;
 
-    public ManAccount getAccount(String manId) {
-        return manAccountRepository.findByManId(manId)
+    public AccountResponse getAccount(String manId) {
+        ManAccount account = manAccountRepository.findByManId(manId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "No account found for manId: " + manId));
+        return toAccountResponse(account);
     }
 
-    public ManAccount applyBuy(BuyRequest request) {
+    public AccountResponse applyBuy(BuyRequest request) {
         ManAccount account = manAccountRepository.findByManId(request.manId())
                 .orElseGet(() -> ManAccount.builder()
                         .manId(request.manId())
@@ -60,6 +62,30 @@ public class LedgerService {
                 .build();
         transactionRepository.save(transaction);
 
-        return savedAccount;
+        return toAccountResponse(savedAccount);
+    }
+
+    // Gain/loss is derived here, not persisted on ManAccount: marketValue only
+    // reflects price as of the last buy (no daily mark-to-market job yet), so
+    // this is a stopgap until analytics-service owns gain/loss reporting.
+    private AccountResponse toAccountResponse(ManAccount account) {
+        BigDecimal gain = account.getMarketValue().subtract(account.getCostBasis());
+        BigDecimal gainPercent = account.getCostBasis().compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : gain.divide(account.getCostBasis(), 6, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+        return AccountResponse.builder()
+                .manId(account.getManId())
+                .symbol(account.getSymbol())
+                .bankBalance(account.getBankBalance())
+                .sharesOwned(account.getSharesOwned())
+                .costBasis(account.getCostBasis())
+                .marketValue(account.getMarketValue())
+                .gain(gain)
+                .gainPercent(gainPercent)
+                .updatedAt(account.getUpdatedAt())
+                .build();
     }
 }

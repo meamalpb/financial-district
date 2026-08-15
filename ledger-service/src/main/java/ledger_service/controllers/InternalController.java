@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+import ledger_service.dto.AccountResponse;
 import ledger_service.dto.BuyRequest;
-import ledger_service.models.ManAccount;
 import ledger_service.services.LedgerService;
 
 @RestController
@@ -20,12 +20,12 @@ public class InternalController {
     private final LedgerService ledgerService;
 
     @GetMapping("/accounts/{manId}")
-    public ManAccount getAccount(@PathVariable String manId) {
+    public AccountResponse getAccount(@PathVariable String manId) {
         return ledgerService.getAccount(manId);
     }
 
     @PostMapping("/buy")
-    public ManAccount buy(@RequestBody BuyRequest request) {
+    public AccountResponse buy(@RequestBody BuyRequest request) {
         return ledgerService.applyBuy(request);
     }
 }

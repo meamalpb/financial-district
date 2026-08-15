@@ -16,7 +16,7 @@ A virtual investing behavior simulator. Independent virtual investors ("Men") ea
 
 We are deliberately building the dumbest possible version first to prove the pipeline before adding real strategy logic:
 
-- **Temp Man**: strategy = "always buy" (`AlwaysBuyStrategy`), no dip/average logic at all. Exists purely to validate the end-to-end pipeline (price fetch → decision → ledger update) with numbers simple enough to verify by hand.
+- **Temp Man**: strategy = "always buy" (`AlwaysBuyStrategy`), no dip/average logic at all. Exists purely to validate the end-to-end pipeline (price fetch → decision → ledger update) with numbers simple enough to verify by hand. **This pipeline is proven**: `strategy-service` calls `ledger-service`'s `POST /internal/buy`, which persists a `Transaction` and updates the `ManAccount` (bank balance, shares owned, cost basis, market value). `GET /internal/accounts/{manId}` returns the account plus a derived `gain`/`gainPercent` (unrealized gain/loss vs. cost basis).
 - **Man 1** (not yet built): real strategy — dip-triggered dollar-cost-accumulation against a 7-day trailing average. Defer this until Temp Man's pipeline is proven.
 - **Man 2** (not yet built, future): identical ruleset to Man 1, but backdated start date, backtested through history then transitions to live. Not in current scope.
 
@@ -41,7 +41,7 @@ Spring Boot microservices, Docker Compose (no Kubernetes/orchestration needed), 
 | **config-server** | Built | Centralized config for all services |
 | **price-service** | Built | Only service allowed to call external stock APIs. Currently wraps Twelve Data's quote endpoint, caches results in Mongo (`quotes` collection), serves via `GET /internal/prices/{symbol}`. Twelve Data historical client (`TwelveDataProvider.getDailyHistory`, `time_series` endpoint) and `PriceHistory`/`PriceHistoryRepository` model exist; the backfill orchestration (paginate + idempotently persist to `price_history`) is not yet built. |
 | **strategy-service** | In progress | Reads Man config, fetches price from price-service, applies a `Strategy` implementation, produces a `BuyDecision`. Currently exposes `GET /internal/run-temp-man` to manually trigger one cycle for Temp Man. |
-| **ledger-service** | In progress | Source of truth for each Man's money: bank balance, transactions, shares owned, cost basis, market value. Only service allowed to mutate this state. |
+| **ledger-service** | In progress | Source of truth for each Man's money: bank balance, transactions, shares owned, cost basis, market value. Only service allowed to mutate this state. `GET /internal/accounts/{manId}` also returns a derived unrealized `gain`/`gainPercent` (see stand-ins below). |
 | **analytics-service** | Not started | Read-only aggregation over Ledger data into graph-ready time series (cost basis vs market value, gain/loss %). |
 | **api-gateway** | Not started | Single entry point, routes to Analytics/Ledger. |
 
@@ -73,7 +73,8 @@ These exist purely to unblock incremental testing. Each has a flagged reason and
 - **Strategy Engine → Ledger communication is currently planned as direct REST** (`POST /internal/buy`), not Kafka. Kafka producer/consumer wiring is the next major piece of work, deferred until Ledger's logic is proven correct via manual REST calls first.
 - **No idempotency/dedupe logic in Ledger yet.** Needed once Kafka is introduced (to handle redelivered/duplicate events) — not needed yet for manually-triggered single REST calls, but must be added before Kafka wiring is considered done.
 - **No daily contribution accumulation logic yet** (the "$1/day added to bank" mechanic). Not needed for Temp Man (whose whole point is "always buy," no accumulation to reason about) — becomes necessary once Man 1's real dip-timing logic is built.
-- **No daily mark-to-market job in Ledger yet.** Market value should recalculate daily using the latest price, independent of whether a buy happened that day. Not yet implemented.
+- **No daily mark-to-market job in Ledger yet.** Market value should recalculate daily using the latest price, independent of whether a buy happened that day. Not yet implemented. As a consequence, `gain`/`gainPercent` (below) only reflects market value as of the last buy, not live price.
+- **`gain`/`gainPercent` are computed in `LedgerService.toAccountResponse()` at read time, not persisted.** This is a stopgap: per the target architecture, gain/loss reporting belongs to `analytics-service` (a read-only consumer of Ledger data), not to Ledger itself. It lives in Ledger for now only because `analytics-service` doesn't exist yet. Move it once `analytics-service` is built, rather than growing more analytics logic here.
 
 ## Conventions
 
