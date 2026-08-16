@@ -58,7 +58,7 @@ public class LedgerService {
                 .amountSpent(request.amountToSpend())
                 .shares(shares)
                 .price(request.price())
-                .timestamp(LocalDateTime.now())
+                .timestamp(request.timestamp() != null ? request.timestamp() : LocalDateTime.now())
                 .build();
         transactionRepository.save(transaction);
 

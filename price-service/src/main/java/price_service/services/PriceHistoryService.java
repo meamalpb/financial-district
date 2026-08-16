@@ -13,6 +13,7 @@ import price_service.dto.TwelveDataTimeSeriesResponse;
 import price_service.mappers.PriceHistoryMapper;
 import price_service.models.PriceHistory;
 import price_service.providers.TwelveDataProvider;
+import price_service.repositories.PriceHistoryRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ public class PriceHistoryService {
     private final TwelveDataProvider twelveDataProvider;
     private final PriceHistoryMapper priceHistoryMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final PriceHistoryRepository priceHistoryRepository;
 
     public int backfill(String symbol) {
         int savedCount = 0;
@@ -55,6 +57,10 @@ public class PriceHistoryService {
         }
 
         return savedCount;
+    }
+
+    public List<PriceHistory> getHistory(String symbol, LocalDate from, LocalDate to) {
+        return priceHistoryRepository.findBySymbolAndDateBetweenOrderByDateAsc(symbol, from, to);
     }
 
     @Transactional

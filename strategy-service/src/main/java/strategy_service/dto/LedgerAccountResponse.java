@@ -8,5 +8,8 @@ public class LedgerAccountResponse {
     private String manId;
     private BigDecimal bankBalance;
     private BigDecimal sharesOwned;
+    private BigDecimal costBasis;
     private BigDecimal marketValue;
+    private BigDecimal gain;
+    private BigDecimal gainPercent;
 }
