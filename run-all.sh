@@ -61,20 +61,41 @@ start_service() {
   echo $! > "$PID_DIR/$name.pid"
 }
 
+# spring-boot-devtools forces spring-boot:run to fork the app into a child
+# JVM; once that fork happens the mvnw/Maven process we backgrounded above
+# exits on its own, leaving the actual app running as an orphan under a
+# different PID. The PID captured by start_service is only valid until that
+# handoff. Call this once the service is confirmed up (port open / registered
+# with Eureka) so the child JVM is guaranteed to exist, and repoint the pid
+# file at the real long-lived process so stop-all.sh can actually stop it.
+resolve_app_pid() {
+  local name=$1 dir=$2
+  local real_pid
+  real_pid=$(pgrep -f "$ROOT_DIR/$dir/target/classes" | head -1)
+  if [[ -n "$real_pid" ]]; then
+    echo "$real_pid" > "$PID_DIR/$name.pid"
+  fi
+}
+
 start_service discovery-server discovery-server
 wait_for_port 8761 discovery-server
+resolve_app_pid discovery-server discovery-server
 
 start_service config-server config-server
 wait_for_port 8888 config-server
+resolve_app_pid config-server config-server
 
 start_service price-service price-service
 start_service ledger-service ledger-service
 
 wait_for_eureka_instance PRICE-SERVICE price-service
+resolve_app_pid price-service price-service
 wait_for_eureka_instance LEDGER-SERVICE ledger-service
+resolve_app_pid ledger-service ledger-service
 
 start_service strategy-service strategy-service
 wait_for_eureka_instance STRATEGY-SERVICE strategy-service
+resolve_app_pid strategy-service strategy-service
 
 echo "All services starting. Logs: $LOG_DIR  PIDs: $PID_DIR"
 echo "Run ./stop-all.sh to stop everything."
