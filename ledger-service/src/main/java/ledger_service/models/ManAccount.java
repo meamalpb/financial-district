@@ -3,8 +3,12 @@ package ledger_service.models;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,18 +19,24 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "man_accounts")
+@Entity
+@Table(name = "man_accounts")
 public class ManAccount {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     private String manId;
     private String symbol;
 
+    @Column(precision = 19, scale = 8)
     private BigDecimal bankBalance;
+    @Column(precision = 19, scale = 8)
     private BigDecimal sharesOwned;
+    @Column(precision = 19, scale = 8)
     private BigDecimal costBasis;
+    @Column(precision = 19, scale = 8)
     private BigDecimal marketValue;
 
     private LocalDateTime updatedAt;

@@ -20,7 +20,7 @@ Ports are defined in each service's `application.yml`/`application.yaml`, except
 
 ## Configuration
 
-Secrets (Mongo URI, Twelve Data API key) are not committed. Copy `.env.example` to `.env` in the repo root and fill in real values:
+Secrets (Postgres connection info, Twelve Data API key) are not committed. Copy `.env.example` to `.env` in the repo root and fill in real values:
 
 ```
 cp .env.example .env
@@ -28,10 +28,12 @@ cp .env.example .env
 
 | Variable | Used by | Description |
 |---|---|---|
-| `MONGODB_URI` | price-service, ledger-service | MongoDB Atlas connection string |
+| `DATASOURCE_URL` | price-service, ledger-service | Postgres JDBC connection string (e.g. Neon) |
+| `DATASOURCE_USERNAME` | price-service, ledger-service | Postgres username |
+| `DATASOURCE_PASSWORD` | price-service, ledger-service | Postgres password |
 | `TWELVEDATA_API_KEY` | price-service | Twelve Data API key |
 
-`run-all.sh` loads `.env` and exports these into the environment before starting services, since `config-server/src/main/resources/config/*.yml` references them as `${MONGODB_URI}` / `${TWELVEDATA_API_KEY}` placeholders (resolved client-side against each service's own environment).
+`run-all.sh` loads `.env` and exports these into the environment before starting services, since `config-server/src/main/resources/config/*.yml` references them as `${DATASOURCE_URL}` / `${DATASOURCE_USERNAME}` / `${DATASOURCE_PASSWORD}` / `${TWELVEDATA_API_KEY}` placeholders (resolved client-side against each service's own environment).
 
 ## Running locally
 
