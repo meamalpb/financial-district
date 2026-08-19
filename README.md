@@ -2,21 +2,18 @@
 
 Virtual investing behavior simulator. Independent virtual investors ("Men") each follow a fixed, frozen strategy, buying/selling a virtual (non-real-money) position in real assets based on real market price data. No real trading occurs — everything is a simulated record.
 
-See [CLAUDE.md](CLAUDE.md) for full architecture, design philosophy, and current build scope.
+See [CLAUDE.md](claude.md) for full architecture, design philosophy, and current build scope.
 
-## Services & ports
+## Running locally
 
-| Service | Port | Status | Notes |
-|---|---|---|---|
-| discovery-server | 8761 | Built | Eureka server |
-| config-server | 8888 | Built | Spring Cloud Config Server (native profile, serves `config-server/src/main/resources/config/*.yml`) |
-| price-service | 8083 | Built | Wraps Twelve Data quote endpoint |
-| strategy-service | 8084 | In progress | Reads Man config, applies strategy, produces buy decisions |
-| ledger-service | 8085 | In progress | Source of truth for each Man's balance, transactions, shares |
-| analytics-service | — | Not started | Read-only aggregation over Ledger data |
-| api-gateway | — | Not started | Single entry point, routes to Analytics/Ledger |
+Single Spring Boot application, port 8080.
 
-Ports are defined in each service's `application.yml`/`application.yaml`, except price-service, strategy-service, and ledger-service, whose ports are centralized in `config-server/src/main/resources/config/*.yml` (served via Spring Cloud Config).
+```
+./run.sh   # starts the app
+./stop.sh  # stops it
+```
+
+Logs are written to `logs/financial-district.log`, PID to `.pids/financial-district.pid`.
 
 ## Configuration
 
@@ -26,20 +23,23 @@ Secrets (Postgres connection info, Twelve Data API key) are not committed. Copy 
 cp .env.example .env
 ```
 
-| Variable | Used by | Description |
-|---|---|---|
-| `DATASOURCE_URL` | price-service, ledger-service | Postgres JDBC connection string (e.g. Neon) |
-| `DATASOURCE_USERNAME` | price-service, ledger-service | Postgres username |
-| `DATASOURCE_PASSWORD` | price-service, ledger-service | Postgres password |
-| `TWELVEDATA_API_KEY` | price-service | Twelve Data API key |
+| Variable | Description |
+|---|---|
+| `DATASOURCE_URL` | Postgres JDBC connection string (e.g. Neon) |
+| `DATASOURCE_USERNAME` | Postgres username |
+| `DATASOURCE_PASSWORD` | Postgres password |
+| `TWELVEDATA_API_KEY` | Twelve Data API key |
 
-`run-all.sh` loads `.env` and exports these into the environment before starting services, since `config-server/src/main/resources/config/*.yml` references them as `${DATASOURCE_URL}` / `${DATASOURCE_USERNAME}` / `${DATASOURCE_PASSWORD}` / `${TWELVEDATA_API_KEY}` placeholders (resolved client-side against each service's own environment).
+`run.sh` loads `.env` and exports these into the environment before starting the app, since `src/main/resources/application.yml` references them as `${DATASOURCE_URL}` / `${DATASOURCE_USERNAME}` / `${DATASOURCE_PASSWORD}` / `${TWELVEDATA_API_KEY}` placeholders.
 
-## Running locally
+## Endpoints
 
-```
-./run-all.sh   # starts services in dependency order: discovery -> config -> (price, ledger, strategy)
-./stop-all.sh  # stops everything
-```
-
-Logs are written to `logs/<service>.log`, PIDs to `.pids/<service>.pid`.
+| Endpoint | Description |
+|---|---|
+| `GET /internal/prices/{symbol}` | Get (and cache) a live quote |
+| `POST /internal/prices/{symbol}/backfill` | Backfill full daily price history for a symbol |
+| `GET /internal/prices/{symbol}/history?from=...&to=...` | Read backfilled price history |
+| `GET /internal/accounts/{manId}` | Get a Man's account (balance, shares, cost basis, gain) |
+| `POST /internal/buy` | Manually apply a buy to a Man's ledger |
+| `GET /internal/run-temp-man` | Run one live decision cycle for Temp Man |
+| `GET /internal/simulate-temp-man?from=...&to=...` | Replay Temp Man's strategy over backfilled history |
