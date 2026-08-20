@@ -1,24 +1,24 @@
 package com.financialdistrict.strategy.services;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import lombok.RequiredArgsConstructor;
 import com.financialdistrict.ledger.dto.AccountResponse;
 import com.financialdistrict.ledger.dto.BuyRequest;
 import com.financialdistrict.ledger.services.LedgerService;
 import com.financialdistrict.price.dto.PriceBarResponse;
 import com.financialdistrict.price.services.PriceService;
-import com.financialdistrict.strategy.dto.SimulationResult;
 import com.financialdistrict.strategy.events.BuyDecision;
 import com.financialdistrict.strategy.models.ManConfig;
 import com.financialdistrict.strategy.strategies.AlwaysBuyStrategy;
 import com.financialdistrict.strategy.strategies.Strategy;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +27,8 @@ public class StrategyEngineService {
     private final PriceService priceService;
     private final LedgerService ledgerService;
 
-    // TEMP: hardcoded Man config, standing in for a ManConfigRepository until there's more than one Man to manage
+    // TEMP: hardcoded Man config, standing in for a ManConfigRepository until
+    // there's more than one Man to manage
     private ManConfig getTempManConfig() {
         ManConfig config = new ManConfig();
         config.setManId("temp-man-1");
@@ -38,7 +39,8 @@ public class StrategyEngineService {
         return config;
     }
 
-    // TEMP: hardcoded strategy resolution, standing in for a real strategy registry/factory later
+    // TEMP: hardcoded strategy resolution, standing in for a real strategy
+    // registry/factory later
     private Strategy resolveStrategy(String strategyName) {
         return new AlwaysBuyStrategy(); // only one strategy exists right now
     }
@@ -65,36 +67,42 @@ public class StrategyEngineService {
     // Replays historical price bars through the same strategy/ledger path as the
     // live cycle above, one buy decision per bar, so the resulting transactions
     // read as if Temp Man had actually been running since the start date.
-    public SimulationResult simulateForTempMan(LocalDate from, LocalDate to) {
-        ManConfig manConfig = getTempManConfig();
-        String symbol = manConfig.getSymbols().get(0);
-        Strategy strategy = resolveStrategy(manConfig.getStrategyName());
+    public ManConfig getMan(String manId) {
+        AccountResponse AccountResponse = ledgerService.getAccount(manId);
+        ManConfig config = new ManConfig();
+        config.setManId(AccountResponse.manId());
+        config.setSymbols(List.of(AccountResponse.symbol()));
+        config.setActive(true);
+        config.setCurrentBalance(AccountResponse.bankBalance());
+        return config;
+    }
 
-        List<PriceBarResponse> bars = priceService.getPriceHistory(symbol, from, to);
+    public String simulateForTempMan() {
+        ManConfig manConfig = getMan("prototype-man");
+        String symbol = manConfig.getSymbols().get(0);
+
+        List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
         if (bars.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No backfilled price history for " + symbol + " between " + from + " and " + to);
+                    "No backfilled price history for " + symbol);
         }
 
-        int buysExecuted = 0;
-        AccountResponse account = null;
         for (PriceBarResponse bar : bars) {
-            BuyDecision decision = strategy.decide(manConfig, bar.close());
-            if (decision.isShouldBuy()) {
-                account = applyBuy(decision, bar.date().atStartOfDay());
-                buysExecuted++;
-            }
-        }
 
-        return SimulationResult.builder()
-                .manId(manConfig.getManId())
-                .symbol(symbol)
-                .from(from)
-                .to(to)
-                .barsProcessed(bars.size())
-                .buysExecuted(buysExecuted)
-                .account(account)
-                .build();
+            ledgerService.AddMoneyToManAccount(manConfig.getManId(), BigDecimal.ONE);
+
+            if (bar.close().compareTo(manConfig.getCurrentBalance()) < 1) {
+                int shares = manConfig.getCurrentBalance().divide(bar.close()).intValue();
+                BigDecimal amount_to_spend = bar.close().multiply(BigDecimal.valueOf(shares));
+
+                ledgerService.recordBuyTransaction(manConfig.getManId(), symbol, amount_to_spend, bar.close(), LocalDateTime.now());
+
+                AccountResponse updated = ledgerService.getAccount(manConfig.getManId());
+                manConfig.setCurrentBalance(updated.bankBalance());
+            }
+
+        }
+        return "Check";
     }
 
     private AccountResponse applyBuy(BuyDecision decision, java.time.LocalDateTime timestamp) {

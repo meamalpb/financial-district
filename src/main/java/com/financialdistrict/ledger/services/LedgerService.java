@@ -23,11 +23,32 @@ public class LedgerService {
     private final ManAccountRepository manAccountRepository;
     private final TransactionRepository transactionRepository;
 
-    public AccountResponse getAccount(String manId) {
+public AccountResponse getAccount(String manId) {
         ManAccount account = manAccountRepository.findByManId(manId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "No account found for manId: " + manId));
         return toAccountResponse(account);
+    }
+
+    public BigDecimal AddMoneyToManAccount(String manId,BigDecimal salary){
+        ManAccount account = manAccountRepository.findByManId(manId)
+                        .orElseGet(() -> ManAccount.builder()
+                        .manId(manId)
+                        .bankBalance(BigDecimal.ZERO)
+                        .sharesOwned(BigDecimal.ZERO)
+                        .costBasis(BigDecimal.ZERO)
+                        .marketValue(BigDecimal.ZERO)
+                        .build());
+        BigDecimal new_balance = account.getBankBalance().add(BigDecimal.ONE);
+        account.setBankBalance(new_balance);
+        Transaction transaction = Transaction.builder()
+                    .manId(account.getManId())
+                    .transactionType("income")
+                    .amount(BigDecimal.ONE)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            transactionRepository.save(transaction);
+        return new_balance;
     }
 
     public AccountResponse applyBuy(BuyRequest request) {
@@ -55,7 +76,7 @@ public class LedgerService {
         Transaction transaction = Transaction.builder()
                 .manId(request.manId())
                 .symbol(request.symbol())
-                .amountSpent(request.amountToSpend())
+                .amount(request.amountToSpend())
                 .shares(shares)
                 .price(request.price())
                 .timestamp(request.timestamp() != null ? request.timestamp() : LocalDateTime.now())
@@ -63,6 +84,39 @@ public class LedgerService {
         transactionRepository.save(transaction);
 
         return toAccountResponse(savedAccount);
+    }
+
+    public void recordBuyTransaction(String manId, String symbol, BigDecimal amountToSpend, BigDecimal price, LocalDateTime timestamp) {
+        ManAccount account = manAccountRepository.findByManId(manId)
+                .orElseGet(() -> ManAccount.builder()
+                        .manId(manId)
+                        .symbol(symbol)
+                        .bankBalance(BigDecimal.ZERO)
+                        .sharesOwned(BigDecimal.ZERO)
+                        .costBasis(BigDecimal.ZERO)
+                        .marketValue(BigDecimal.ZERO)
+                        .build());
+
+        BigDecimal shares = amountToSpend.divide(price, 8, RoundingMode.HALF_UP);
+
+        account.setBankBalance(account.getBankBalance().subtract(amountToSpend));
+        account.setSharesOwned(account.getSharesOwned().add(shares));
+        account.setCostBasis(account.getCostBasis().add(amountToSpend));
+        account.setMarketValue(account.getSharesOwned().multiply(price));
+        account.setUpdatedAt(LocalDateTime.now());
+
+        manAccountRepository.save(account);
+
+        Transaction transaction = Transaction.builder()
+                .manId(manId)
+                .symbol(symbol)
+                .amount(amountToSpend)
+                .shares(shares)
+                .price(price)
+                .transactionType("buy")
+                .timestamp(timestamp)
+                .build();
+        transactionRepository.save(transaction);
     }
 
     // Gain/loss is derived here, not persisted on ManAccount: marketValue only

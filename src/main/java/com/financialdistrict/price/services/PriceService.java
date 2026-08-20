@@ -1,14 +1,14 @@
 package com.financialdistrict.price.services;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import lombok.RequiredArgsConstructor;
 import com.financialdistrict.price.dto.PriceBarResponse;
 import com.financialdistrict.price.models.Quote;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +29,8 @@ public class PriceService {
         return priceHistoryService.backfill(symbol);
     }
 
-    public List<PriceBarResponse> getPriceHistory(String symbol, LocalDate from, LocalDate to) {
-        return priceHistoryService.getHistory(symbol, from, to).stream()
+    public List<PriceBarResponse> getPriceHistory(String symbol) {
+        return priceHistoryService.getHistory(symbol).stream()
                 .map(bar -> new PriceBarResponse(bar.getSymbol(), bar.getDate(), bar.getClose()))
                 .toList();
     }

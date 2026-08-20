@@ -10,6 +10,6 @@ import com.financialdistrict.price.models.PriceHistory;
 
 public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long> {
     Optional<PriceHistory> findBySymbolAndDate(String symbol, LocalDate date);
-
+    List<PriceHistory> findBySymbolOrderByDateAsc(String symbol);
     List<PriceHistory> findBySymbolAndDateBetweenOrderByDateAsc(String symbol, LocalDate from, LocalDate to);
 }

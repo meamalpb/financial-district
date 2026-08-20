@@ -31,11 +31,13 @@ public class Transaction {
     private String symbol;
 
     @Column(precision = 19, scale = 8)
-    private BigDecimal amountSpent;
+    private BigDecimal amount;
     @Column(precision = 19, scale = 8)
     private BigDecimal shares;
     @Column(precision = 19, scale = 8)
     private BigDecimal price;
+
+    private String transactionType;
 
     private LocalDateTime timestamp;
 }

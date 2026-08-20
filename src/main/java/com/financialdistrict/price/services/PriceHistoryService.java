@@ -59,8 +59,8 @@ public class PriceHistoryService {
         return savedCount;
     }
 
-    public List<PriceHistory> getHistory(String symbol, LocalDate from, LocalDate to) {
-        return priceHistoryRepository.findBySymbolAndDateBetweenOrderByDateAsc(symbol, from, to);
+    public List<PriceHistory> getHistory(String symbol) {
+        return priceHistoryRepository.findBySymbolOrderByDateAsc(symbol);
     }
 
     @Transactional
