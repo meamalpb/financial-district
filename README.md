@@ -2,7 +2,7 @@
 
 Virtual investing behavior simulator. Independent virtual investors ("Men") each follow a fixed, frozen strategy, buying/selling a virtual (non-real-money) position in real assets based on real market price data. No real trading occurs — everything is a simulated record.
 
-See [CLAUDE.md](claude.md) for full architecture, design philosophy, and current build scope.
+See [CLAUDE.md](CLAUDE.md) for full architecture, design philosophy, and current build scope.
 
 ## Running locally
 

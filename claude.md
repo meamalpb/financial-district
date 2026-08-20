@@ -14,7 +14,7 @@ A virtual investing behavior simulator. Independent virtual investors ("Men") ea
 
 ## Architecture: monolith
 
-This is a **single Spring Boot application**, not a set of microservices. It previously existed as 5 separate services (Eureka discovery, Config Server, price-service, strategy-service, ledger-service) wired together over REST; that was collapsed into one deployable app on the `monolith` branch. There is no service discovery, no config server, and no network hop between the price/strategy/ledger domains — they call each other as plain injected Spring beans in the same JVM.
+This is a **single Spring Boot application**, not a set of microservices. It previously existed as 5 separate services (Eureka discovery, Config Server, price-service, strategy-service, ledger-service) wired together over REST; that history is preserved in git, but the microservices layout no longer exists in the working tree — everything now lives in one deployable app. There is no service discovery, no config server, and no network hop between the price/strategy/ledger domains — they call each other as plain injected Spring beans in the same JVM.
 
 Postgres (managed, e.g. Neon) is still the datastore, via Spring Data JPA.
 
