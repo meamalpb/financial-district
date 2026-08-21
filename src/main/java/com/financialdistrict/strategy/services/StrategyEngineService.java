@@ -27,8 +27,8 @@ public class StrategyEngineService {
     private final LedgerService ledgerService;
 
 
-    public ManConfig getMan(String manId) {
-        AccountResponse accountResponse = ledgerService.getAccount(manId);
+    public ManConfig getMan(String manId,String symbol) {
+        AccountResponse accountResponse = ledgerService.getAccount(manId,symbol);
         ManConfig config = new ManConfig();
         config.setManId(accountResponse.manId());
         config.setSymbols(List.of(accountResponse.symbol()));
@@ -41,7 +41,7 @@ public class StrategyEngineService {
     // per bar, so the resulting transactions read as if this Man had actually
     // been running since the start date.
     public String simulateForPrototypeMan() {
-        ManConfig manConfig = getMan("prototype-man");
+        ManConfig manConfig = getMan("prototype-man","SPY");
         String symbol = manConfig.getSymbols().get(0);
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
