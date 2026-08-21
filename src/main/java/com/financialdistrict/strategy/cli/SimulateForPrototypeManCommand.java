@@ -10,7 +10,7 @@ import picocli.CommandLine.Command;
 @Component
 @Command(name = "simulate-prototype-man", description = "Simulate prototype man")
 @AllArgsConstructor
-public class simulateForPrototypeManCommand implements Runnable {
+public class SimulateForPrototypeManCommand implements Runnable {
 
     private StrategyEngineService strategyEngineService;
     @Override

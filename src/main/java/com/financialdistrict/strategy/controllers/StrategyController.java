@@ -13,8 +13,8 @@ public class StrategyController {
 
     private final StrategyEngineService strategyEngineService;
 
-    @GetMapping("/internal/run-temp-man")
-    public String runTempMan() {
+    @GetMapping("/internal/simulate-prototype-man")
+    public String simulatePrototypeMan() {
         return strategyEngineService.simulateForPrototypeMan();
     }
 

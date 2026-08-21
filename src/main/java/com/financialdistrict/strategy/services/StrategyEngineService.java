@@ -27,19 +27,19 @@ public class StrategyEngineService {
     private final LedgerService ledgerService;
 
 
-    // Replays historical price bars through the same strategy/ledger path as the
-    // live cycle above, one buy decision per bar, so the resulting transactions
-    // read as if Temp Man had actually been running since the start date.
     public ManConfig getMan(String manId) {
-        AccountResponse AccountResponse = ledgerService.getAccount(manId);
+        AccountResponse accountResponse = ledgerService.getAccount(manId);
         ManConfig config = new ManConfig();
-        config.setManId(AccountResponse.manId());
-        config.setSymbols(List.of(AccountResponse.symbol()));
+        config.setManId(accountResponse.manId());
+        config.setSymbols(List.of(accountResponse.symbol()));
         config.setActive(true);
-        config.setCurrentBalance(AccountResponse.bankBalance());
+        config.setCurrentBalance(accountResponse.bankBalance());
         return config;
     }
 
+    // Replays historical price bars against a Man's account, one buy decision
+    // per bar, so the resulting transactions read as if this Man had actually
+    // been running since the start date.
     public String simulateForPrototypeMan() {
         ManConfig manConfig = getMan("prototype-man");
         String symbol = manConfig.getSymbols().get(0);
