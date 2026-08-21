@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title th:text="${manId} + ' — Account Snapshots'">Account Snapshots</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+  h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; margin-bottom: 1.5rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem; }
+  .stat { min-width: 140px; }
+  .stat .label { font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat .value { font-size: 1.3rem; font-weight: 600; }
+  .gain-positive { color: #1a7f37; }
+  .gain-negative { color: #cf222e; }
+  .empty { color: #666; }
+  canvas { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 th:text="${manId}">Man</h1>
+<div class="subtitle">
+  Account snapshot history (<span th:text="${#lists.size(snapshots)}">0</span>
+  transaction<span th:if="${#lists.size(snapshots) != 1}">s</span>)
+</div>
+
+<div class="stats" th:if="${latest != null}">
+  <div class="stat">
+    <div class="label">Bank Balance</div>
+    <div class="value">$<span th:text="${latest.bankBalance}">0</span></div>
+  </div>
+  <div class="stat">
+    <div class="label">Shares Owned</div>
+    <div class="value" th:text="${latest.sharesOwned}">0</div>
+  </div>
+  <div class="stat">
+    <div class="label">Cost Basis</div>
+    <div class="value">$<span th:text="${latest.costBasis}">0</span></div>
+  </div>
+  <div class="stat">
+    <div class="label">Market Value</div>
+    <div class="value">$<span th:text="${latest.marketValue}">0</span></div>
+  </div>
+  <div class="stat">
+    <div class="label">Gain</div>
+    <div class="value" th:classappend="${latest.gain.signum() < 0} ? 'gain-negative' : 'gain-positive'">
+      $<span th:text="${latest.gain}">0</span> (<span th:text="${latest.gainPercent}">0</span>%)
+    </div>
+  </div>
+</div>
+<p class="empty" th:unless="${latest != null}">No snapshots yet.</p>
+
+<canvas id="snapshotChart" height="100"></canvas>
+<script th:inline="javascript">
+  const snapshots = /*[[${snapshots}]]*/ [];
+
+  if (snapshots.length > 0) {
+    const ctx = document.getElementById('snapshotChart');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: snapshots.map(s => s.timestamp),
+        datasets: [
+          {
+            label: 'Cost Basis',
+            data: snapshots.map(s => s.costBasis),
+            borderColor: '#4c6ef5',
+            backgroundColor: '#4c6ef5',
+            tension: 0.1,
+          },
+          {
+            label: 'Market Value',
+            data: snapshots.map(s => s.marketValue),
+            borderColor: '#1a7f37',
+            backgroundColor: '#1a7f37',
+            tension: 0.1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { title: { display: true, text: 'Transaction time' } },
+          y: { title: { display: true, text: 'USD' } },
+        },
+      },
+    });
+  }
+</script>
+</body>
+</html>
