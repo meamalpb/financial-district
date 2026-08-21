@@ -9,7 +9,8 @@ import picocli.CommandLine.Command;
     name = "my-app",
     description = "My application CLI",
     subcommands = {
-        SimulateForPrototypeManCommand.class
+        SimulateForPrototypeManCommand.class,
+        SisyphusCommand.class
     }
 )
 public class MyAppCommand implements Runnable {
