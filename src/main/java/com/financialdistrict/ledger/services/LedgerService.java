@@ -42,7 +42,7 @@ public class LedgerService {
         private final JdbcTemplate jdbcTemplate;
 
         public AccountResponse getAccount(String manId, String symbol) {
-                ManAccount account = manAccountRepository.findByManIdandSymbol(manId, symbol)
+                ManAccount account = manAccountRepository.findByManIdAndSymbol(manId, symbol)
                                 .orElseGet(() -> ManAccount.builder()
                                                 .manId(manId)
                                                 .symbol(symbol)

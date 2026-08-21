@@ -8,6 +8,6 @@ import com.financialdistrict.ledger.models.ManAccount;
 
 public interface ManAccountRepository extends JpaRepository<ManAccount, Long> {
     Optional<ManAccount> findByManId(String manId);
-    Optional<ManAccount> findByManIdandSymbol(String manId,String symbol);
+    Optional<ManAccount> findByManIdAndSymbol(String manId, String symbol);
     
 }
