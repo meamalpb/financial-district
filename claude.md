@@ -57,10 +57,13 @@ Each domain keeps its own DTOs/models where it makes sense to isolate a concern 
 We are deliberately building the dumbest possible version first to prove the pipeline before adding real strategy logic:
 
 - **Temp Man**: strategy = "always buy" (`AlwaysBuyStrategy`), no dip/average logic at all. Exists purely to validate the end-to-end pipeline (price fetch → decision → ledger update) with numbers simple enough to verify by hand. **This pipeline is proven**: `StrategyEngineService` calls `LedgerService.applyBuy(BuyRequest)` directly, which persists a `Transaction` and updates the `ManAccount` (bank balance, shares owned, cost basis, market value). `LedgerService.getAccount()` (exposed via `GET /internal/accounts/{manId}`) also returns a derived unrealized `gain`/`gainPercent`.
+- **Sisyphus** (`strategy.services.SisyphusMan`, man ID `"sisyphus"`): a backtest-style simulation that replays full backfilled price history for a symbol, adding $1/day to a running balance and buying as many fractional shares as that balance affords on every single bar — win, lose, or flat, forever. Named for the myth (endless repetitive labor, no regard for outcome) rather than a "Man N" number since it's a simulation harness over historical bars, not a live-running Man. Invoked via CLI: `simulate-sisyphus` (see `strategy.cli.SisyphusCommand`), driven through `StrategyEngineService.simulateForSisyphus()`. Same partial-shares/fractional-buy mechanic Man 1 will eventually need, but wired directly rather than through the `Strategy` interface — treat as a reference implementation, not the final Man 1 shape.
 - **Man 1** (not yet built): real strategy — dip-triggered dollar-cost-accumulation against a 7-day trailing average. Defer this until Temp Man's pipeline is proven.
 - **Man 2** (not yet built, future): identical ruleset to Man 1, but backdated start date, backtested through history then transitions to live. Not in current scope.
 
 Do not build dip logic, selling logic, multi-Man comparison views, or additional assets until explicitly asked — these are intentionally deferred.
+
+CLI commands run via `PicocliRunner`/`MyAppCommand` (picocli subcommands under `strategy.cli`) — e.g. `simulate-prototype-man`, `simulate-sisyphus` — as an alternative entry point to the `/internal/...` REST endpoints for triggering simulations.
 
 ## Future direction
 

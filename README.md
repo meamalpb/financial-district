@@ -43,3 +43,15 @@ cp .env.example .env
 | `POST /internal/buy` | Manually apply a buy to a Man's ledger |
 | `GET /internal/run-temp-man` | Run one live decision cycle for Temp Man |
 | `GET /internal/simulate-temp-man?from=...&to=...` | Replay Temp Man's strategy over backfilled history |
+
+## CLI commands
+
+Simulations can also be triggered via picocli subcommands (in addition to the REST endpoints above):
+
+```
+./mvnw package -DskipTests
+java -jar target/financial-district-0.0.1-SNAPSHOT.jar simulate-prototype-man
+java -jar target/financial-district-0.0.1-SNAPSHOT.jar simulate-sisyphus
+```
+
+`simulate-sisyphus` replays full backfilled price history for SPY, adding $1/day to a running balance and buying fractional shares on every bar — see [CLAUDE.md](CLAUDE.md) for the naming rationale.
