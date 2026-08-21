@@ -86,7 +86,7 @@ public class LedgerService {
                 ManAccount savedAccount = manAccountRepository.save(account);
 
                 Transaction transaction = Transaction.builder()
-                                .manId(request.manId())
+                                .manAccount(savedAccount)
                                 .symbol(request.symbol())
                                 .amount(request.amountToSpend())
                                 .shares(shares)
@@ -109,15 +109,19 @@ public class LedgerService {
         // instead of the 1 (upsert) + 1-3 (inserts) round trips per bar the old
         // per-bar recordBuyTransaction/AddMoneyToManAccount methods cost.
         public AccountResponse processSimulationBatch(String manId, String symbol, List<SimulationBarEvent> events) {
+                // Resolved (and persisted, if new) up front so its id exists before the
+                // batch rows below are built - man_account_id is a real FK now, not a
+                // string copied in after the fact.
                 ManAccount account = manAccountRepository.findByManId(manId)
-                                .orElseGet(() -> ManAccount.builder()
+                                .orElseGet(() -> manAccountRepository.save(ManAccount.builder()
                                                 .manId(manId)
                                                 .symbol(symbol)
                                                 .bankBalance(BigDecimal.ZERO)
                                                 .sharesOwned(BigDecimal.ZERO)
                                                 .costBasis(BigDecimal.ZERO)
                                                 .marketValue(BigDecimal.ZERO)
-                                                .build());
+                                                .build()));
+                Long manAccountId = account.getId();
 
                 List<Object[]> transactionRows = new ArrayList<>();
                 List<PendingSnapshot> pendingSnapshots = new ArrayList<>();
@@ -125,7 +129,7 @@ public class LedgerService {
                 for (SimulationBarEvent event : events) {
                         account.setBankBalance(account.getBankBalance().add(event.contribution()));
                         transactionRows.add(new Object[] {
-                                        manId, symbol, event.contribution(), null, null, "income",
+                                        manAccountId, symbol, event.contribution(), null, null, "income",
                                         Timestamp.valueOf(event.timestamp())
                         });
 
@@ -138,8 +142,8 @@ public class LedgerService {
                                 account.setMarketValue(account.getSharesOwned().multiply(event.price()));
 
                                 transactionRows.add(new Object[] {
-                                                manId, symbol, event.amountToSpend(), shares, event.price(), "buy",
-                                                Timestamp.valueOf(event.timestamp())
+                                                manAccountId, symbol, event.amountToSpend(), shares, event.price(),
+                                                "buy", Timestamp.valueOf(event.timestamp())
                                 });
 
                                 BigDecimal gain = calculateGain(account);
@@ -156,9 +160,9 @@ public class LedgerService {
 
                 batchInsertTransactions(transactionRows);
                 if (!pendingSnapshots.isEmpty()) {
-                        List<Long> buyTransactionIds = fetchLatestBuyTransactionIds(manId, symbol,
+                        List<Long> buyTransactionIds = fetchLatestBuyTransactionIds(manAccountId, symbol,
                                         pendingSnapshots.size());
-                        batchInsertSnapshots(manId, symbol, pendingSnapshots, buyTransactionIds);
+                        batchInsertSnapshots(manAccountId, symbol, pendingSnapshots, buyTransactionIds);
                 }
 
                 return toAccountResponse(savedAccount);
@@ -166,10 +170,10 @@ public class LedgerService {
 
         private void batchInsertTransactions(List<Object[]> transactionRows) {
                 int[] argTypes = {
-                                Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.NUMERIC, Types.NUMERIC,
+                                Types.BIGINT, Types.VARCHAR, Types.NUMERIC, Types.NUMERIC, Types.NUMERIC,
                                 Types.VARCHAR, Types.TIMESTAMP
                 };
-                String sql = "INSERT INTO transactions (man_id, symbol, amount, shares, price, transaction_type, timestamp) "
+                String sql = "INSERT INTO transactions (man_account_id, symbol, amount, shares, price, transaction_type, timestamp) "
                                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
                 for (List<Object[]> chunk : partition(transactionRows, SIMULATION_BATCH_SIZE)) {
                         jdbcTemplate.batchUpdate(sql, chunk, argTypes);
@@ -178,25 +182,26 @@ public class LedgerService {
 
         // Batch-inserted transactions don't hand back their generated ids, so the
         // ids this simulation just created are looked up by grabbing the most
-        // recent N "buy" rows for this Man/symbol - safe because a single batch
-        // insert assigns IDENTITY values in ascending order matching input order,
-        // so ordering by id here lines back up with pendingSnapshots' bar order.
-        private List<Long> fetchLatestBuyTransactionIds(String manId, String symbol, int count) {
+        // recent N "buy" rows for this ManAccount/symbol - safe because a single
+        // batch insert assigns IDENTITY values in ascending order matching input
+        // order, so ordering by id here lines back up with pendingSnapshots' bar
+        // order.
+        private List<Long> fetchLatestBuyTransactionIds(Long manAccountId, String symbol, int count) {
                 List<Long> ids = jdbcTemplate.queryForList(
-                                "SELECT id FROM transactions WHERE man_id = ? AND symbol = ? AND transaction_type = 'buy' "
+                                "SELECT id FROM transactions WHERE man_account_id = ? AND symbol = ? AND transaction_type = 'buy' "
                                                 + "ORDER BY id DESC LIMIT ?",
-                                Long.class, manId, symbol, count);
+                                Long.class, manAccountId, symbol, count);
                 Collections.reverse(ids);
                 return ids;
         }
 
-        private void batchInsertSnapshots(String manId, String symbol, List<PendingSnapshot> pendingSnapshots,
+        private void batchInsertSnapshots(Long manAccountId, String symbol, List<PendingSnapshot> pendingSnapshots,
                         List<Long> buyTransactionIds) {
                 List<Object[]> snapshotRows = new ArrayList<>(pendingSnapshots.size());
                 for (int i = 0; i < pendingSnapshots.size(); i++) {
                         PendingSnapshot snapshot = pendingSnapshots.get(i);
                         snapshotRows.add(new Object[] {
-                                        manId, symbol, buyTransactionIds.get(i), snapshot.price(),
+                                        manAccountId, symbol, buyTransactionIds.get(i), snapshot.price(),
                                         snapshot.bankBalance(),
                                         snapshot.sharesOwned(), snapshot.costBasis(), snapshot.marketValue(),
                                         snapshot.gain(),
@@ -205,10 +210,10 @@ public class LedgerService {
                 }
 
                 int[] argTypes = {
-                                Types.VARCHAR, Types.VARCHAR, Types.BIGINT, Types.NUMERIC, Types.NUMERIC, Types.NUMERIC,
+                                Types.BIGINT, Types.VARCHAR, Types.BIGINT, Types.NUMERIC, Types.NUMERIC, Types.NUMERIC,
                                 Types.NUMERIC, Types.NUMERIC, Types.NUMERIC, Types.NUMERIC, Types.TIMESTAMP
                 };
-                String sql = "INSERT INTO account_snapshots (man_id, symbol, transaction_id, price, bank_balance, "
+                String sql = "INSERT INTO account_snapshots (man_account_id, symbol, transaction_id, price, bank_balance, "
                                 + "shares_owned, cost_basis, market_value, gain, gain_percent, timestamp) "
                                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 for (List<Object[]> chunk : partition(snapshotRows, SIMULATION_BATCH_SIZE)) {
@@ -233,7 +238,7 @@ public class LedgerService {
         }
 
         public List<AccountSnapshotResponse> getSnapshots(String manId) {
-                return accountSnapshotRepository.findByManIdOrderByTimestampAsc(manId).stream()
+                return accountSnapshotRepository.findByManAccount_ManIdOrderByTimestampAsc(manId).stream()
                                 .map(this::toSnapshotResponse)
                                 .toList();
         }
@@ -246,7 +251,7 @@ public class LedgerService {
                 BigDecimal gainPercent = calculateGainPercent(account, gain);
 
                 AccountSnapshot snapshot = AccountSnapshot.builder()
-                                .manId(account.getManId())
+                                .manAccount(account)
                                 .symbol(account.getSymbol())
                                 .transactionId(transaction.getId())
                                 .price(transaction.getPrice())
@@ -295,7 +300,7 @@ public class LedgerService {
 
         private AccountSnapshotResponse toSnapshotResponse(AccountSnapshot snapshot) {
                 return AccountSnapshotResponse.builder()
-                                .manId(snapshot.getManId())
+                                .manId(snapshot.getManAccount().getManId())
                                 .symbol(snapshot.getSymbol())
                                 .transactionId(snapshot.getTransactionId())
                                 .price(snapshot.getPrice())

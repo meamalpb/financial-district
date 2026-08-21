@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
@@ -18,9 +21,10 @@ import lombok.NoArgsConstructor;
 // Point-in-time capture of a ManAccount's state immediately after a buy is
 // applied: cost basis, market value, and derived gain/gainPercent as they
 // stood at that transaction, rather than only the live/current figures on
-// ManAccount. Transaction.id is stored as a plain column (transactionId), not
-// a JPA relation, matching how ManAccount/Transaction already reference each
-// other by manId rather than FK associations.
+// ManAccount. transactionId is still stored as a plain column, not a JPA
+// relation, since a snapshot outliving its source Transaction is harmless.
+// manAccount is a real FK (man_account_id, ON DELETE CASCADE) so a snapshot
+// can never outlive/orphan from its ManAccount.
 @Data
 @Builder
 @NoArgsConstructor
@@ -33,7 +37,10 @@ public class AccountSnapshot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String manId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "man_account_id", nullable = false)
+    private ManAccount manAccount;
+
     private String symbol;
     private Long transactionId;
 

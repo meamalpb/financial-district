@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.financialdistrict.ledger.models.Transaction;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByManId(String manId);
+    List<Transaction> findByManAccount_ManId(String manId);
 }

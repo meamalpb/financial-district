@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.financialdistrict.ledger.models.AccountSnapshot;
 
 public interface AccountSnapshotRepository extends JpaRepository<AccountSnapshot, Long> {
-    List<AccountSnapshot> findByManIdOrderByTimestampAsc(String manId);
+    List<AccountSnapshot> findByManAccount_ManIdOrderByTimestampAsc(String manId);
 }
