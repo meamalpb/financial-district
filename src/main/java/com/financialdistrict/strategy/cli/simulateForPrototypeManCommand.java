@@ -8,13 +8,13 @@ import lombok.AllArgsConstructor;
 import picocli.CommandLine.Command;
 
 @Component
-@Command(name = "create-user", description = "Create a new user")
+@Command(name = "simulate-prototype-man", description = "Simulate prototype man")
 @AllArgsConstructor
-public class ExampleUserCommand implements Runnable {
+public class simulateForPrototypeManCommand implements Runnable {
 
     private StrategyEngineService strategyEngineService;
     @Override
     public void run() {
-        strategyEngineService.simulateForTempMan();
+        strategyEngineService.simulateForPrototypeMan();
     }
 }
