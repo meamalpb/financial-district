@@ -1,6 +1,7 @@
 package com.financialdistrict.strategy.services;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -89,13 +90,16 @@ public class StrategyEngineService {
 
         for (PriceBarResponse bar : bars) {
 
-            ledgerService.AddMoneyToManAccount(manConfig.getManId(), BigDecimal.ONE);
+            LocalDateTime barTimestamp = bar.date().atStartOfDay();
+
+            BigDecimal newBalance = ledgerService.AddMoneyToManAccount(manConfig.getManId(), BigDecimal.ONE, barTimestamp);
+            manConfig.setCurrentBalance(newBalance);
 
             if (bar.close().compareTo(manConfig.getCurrentBalance()) < 1) {
-                int shares = manConfig.getCurrentBalance().divide(bar.close()).intValue();
+                int shares = manConfig.getCurrentBalance().divide(bar.close(), 8, RoundingMode.DOWN).intValue();
                 BigDecimal amount_to_spend = bar.close().multiply(BigDecimal.valueOf(shares));
 
-                ledgerService.recordBuyTransaction(manConfig.getManId(), symbol, amount_to_spend, bar.close(), LocalDateTime.now());
+                ledgerService.recordBuyTransaction(manConfig.getManId(), symbol, amount_to_spend, bar.close(), barTimestamp);
 
                 AccountResponse updated = ledgerService.getAccount(manConfig.getManId());
                 manConfig.setCurrentBalance(updated.bankBalance());

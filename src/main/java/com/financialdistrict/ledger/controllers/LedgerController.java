@@ -1,5 +1,7 @@
 package com.financialdistrict.ledger.controllers;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import com.financialdistrict.ledger.dto.AccountResponse;
+import com.financialdistrict.ledger.dto.AccountSnapshotResponse;
 import com.financialdistrict.ledger.dto.BuyRequest;
 import com.financialdistrict.ledger.services.LedgerService;
 
@@ -27,5 +30,10 @@ public class LedgerController {
     @PostMapping("/buy")
     public AccountResponse buy(@RequestBody BuyRequest request) {
         return ledgerService.applyBuy(request);
+    }
+
+    @GetMapping("/accounts/{manId}/snapshots")
+    public List<AccountSnapshotResponse> getSnapshots(@PathVariable String manId) {
+        return ledgerService.getSnapshots(manId);
     }
 }
