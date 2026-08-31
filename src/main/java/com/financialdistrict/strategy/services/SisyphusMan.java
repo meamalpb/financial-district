@@ -53,12 +53,14 @@ public class SisyphusMan {
             runningBalance = runningBalance.add(BigDecimal.ONE);
 
             boolean shouldBuy = false;
+            boolean shouldsell = false;
+            BigDecimal amountToSell = BigDecimal.ZERO;
             BigDecimal amountToSpend = BigDecimal.ZERO;
             BigDecimal shares = runningBalance.divide(bar.close(), 8, RoundingMode.DOWN);
             amountToSpend = bar.close().multiply(shares);
             runningBalance = runningBalance.subtract(amountToSpend);
             shouldBuy = true;
-            events.add(new SimulationBarEvent(BigDecimal.ONE, bar.close(), shouldBuy, amountToSpend, barTimestamp));
+            events.add(new SimulationBarEvent(BigDecimal.ONE, bar.close(), shouldBuy,shouldsell,amountToSell, amountToSpend, barTimestamp));
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
 

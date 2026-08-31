@@ -58,6 +58,8 @@ public class SimulatePrototypeMan {
             runningBalance = runningBalance.add(BigDecimal.ONE);
 
             boolean shouldBuy = false;
+            boolean shouldsell = false;
+            BigDecimal amountToSell = BigDecimal.ZERO;
             BigDecimal amountToSpend = BigDecimal.ZERO;
             if (bar.close().compareTo(runningBalance) < 1) {
                 int shares = runningBalance.divide(bar.close(), 8, RoundingMode.DOWN).intValue();
@@ -66,7 +68,8 @@ public class SimulatePrototypeMan {
                 shouldBuy = true;
             }
 
-            events.add(new SimulationBarEvent(BigDecimal.ONE, bar.close(), shouldBuy, amountToSpend, barTimestamp));
+            events.add(new SimulationBarEvent(BigDecimal.ONE, bar.close(), shouldBuy, shouldsell, amountToSell,
+                    amountToSpend, barTimestamp));
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
 

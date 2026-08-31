@@ -11,5 +11,7 @@ public record SimulationBarEvent(
         BigDecimal contribution,
         BigDecimal price,
         boolean buy,
+        boolean sell,
+        BigDecimal amountToSell,
         BigDecimal amountToSpend,
         LocalDateTime timestamp) {}
