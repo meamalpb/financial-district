@@ -128,10 +128,13 @@ public class LedgerService {
 
                 for (SimulationBarEvent event : events) {
                         account.setBankBalance(account.getBankBalance().add(event.contribution()));
-                        transactionRows.add(new Object[] {
-                                        manAccountId, symbol, event.contribution(), null, null, "income",
-                                        Timestamp.valueOf(event.timestamp())
-                        });
+                        if (event.contribution().compareTo(BigDecimal.ZERO)==1){
+                                transactionRows.add(new Object[] {
+                                                manAccountId, symbol, event.contribution(), null, null, "income",
+                                                Timestamp.valueOf(event.timestamp())
+                                });
+                        }
+
 
                         if (event.buy()) {
                                 BigDecimal shares = event.amountToSpend().divide(event.price(), 8,
