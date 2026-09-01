@@ -21,7 +21,7 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 @Component
-public class SisyphusMan {
+public class SellingMan {
     private final LedgerService ledgerService;
     private final PriceService priceService;
 
@@ -36,7 +36,10 @@ public class SisyphusMan {
     }
 
     public void process() {
-        ManConfig manConfig = getMan("sisyphus", "SPY");
+        int SELLDAY = 7;
+        BigDecimal dailyIncome = BigDecimal.ONE;
+
+        ManConfig manConfig = getMan("selling-ma", "SPY");
         String symbol = manConfig.getSymbols().get(0);
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
@@ -47,19 +50,38 @@ public class SisyphusMan {
 
         BigDecimal runningBalance = manConfig.getCurrentBalance();
         List<SimulationBarEvent> events = new ArrayList<>(bars.size());
-
+        int i = 0;
         for (PriceBarResponse bar : bars) {
             LocalDateTime barTimestamp = bar.date().atStartOfDay();
-            runningBalance = runningBalance.add(BigDecimal.ONE);
 
+            BigDecimal closing_price = bar.close();
+            BigDecimal contribution = dailyIncome;
             boolean shouldBuy = false;
             boolean shouldSell = false;
             BigDecimal amountToSpend = BigDecimal.ZERO;
-            BigDecimal shares = runningBalance.divide(bar.close(), 8, RoundingMode.DOWN);
-            amountToSpend = bar.close().multiply(shares);
-            runningBalance = runningBalance.subtract(amountToSpend);
-            shouldBuy = true;
-            events.add(new SimulationBarEvent(shares, BigDecimal.ONE, bar.close(), shouldBuy,shouldSell, amountToSpend, barTimestamp));
+            BigDecimal shares = BigDecimal.ZERO;
+            BigDecimal SellAmount = BigDecimal.valueOf(5);
+
+            runningBalance = runningBalance.add(contribution);
+            events.add(new SimulationBarEvent(shares, contribution, closing_price, shouldBuy, shouldSell, amountToSpend,
+                    barTimestamp));
+
+            if (i == SELLDAY) {
+                shouldSell = true;
+                shares = SellAmount.divide(closing_price, 8, RoundingMode.DOWN).negate();
+                BigDecimal shareSellAmount = shares.multiply(closing_price).abs();
+                runningBalance = runningBalance.add(shareSellAmount);
+                contribution = shareSellAmount;
+            } else {
+                shares = runningBalance.divide(closing_price, 8, RoundingMode.DOWN);
+                amountToSpend = closing_price.multiply(shares);
+                runningBalance = runningBalance.subtract(amountToSpend);
+                shouldBuy = true;
+                contribution = BigDecimal.ZERO;
+            }
+            events.add(new SimulationBarEvent(shares, contribution, closing_price, shouldBuy, shouldSell, amountToSpend,
+                    barTimestamp));
+            i++;
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
 

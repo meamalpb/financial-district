@@ -8,8 +8,10 @@ import java.time.LocalDateTime;
 // LedgerService as a list of these so it can persist them with
 // jdbcTemplate.batchUpdate instead of one round trip per bar.
 public record SimulationBarEvent(
+        BigDecimal shares,
         BigDecimal contribution,
         BigDecimal price,
         boolean buy,
+        boolean sell,
         BigDecimal amountToSpend,
         LocalDateTime timestamp) {}

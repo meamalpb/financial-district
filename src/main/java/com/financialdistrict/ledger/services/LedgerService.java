@@ -127,25 +127,56 @@ public class LedgerService {
                 List<PendingSnapshot> pendingSnapshots = new ArrayList<>();
 
                 for (SimulationBarEvent event : events) {
-                        account.setBankBalance(account.getBankBalance().add(event.contribution()));
-                        transactionRows.add(new Object[] {
-                                        manAccountId, symbol, event.contribution(), null, null, "income",
-                                        Timestamp.valueOf(event.timestamp())
-                        });
+                        if (!event.sell()) {
+                                account.setBankBalance(account.getBankBalance().add(event.contribution()));
+                                transactionRows.add(new Object[] {
+                                                manAccountId, symbol, event.contribution(), null, null, "income",
+                                                Timestamp.valueOf(event.timestamp())
+                                });
+                        }
 
                         if (event.buy()) {
-                                BigDecimal shares = event.amountToSpend().divide(event.price(), 8,
-                                                RoundingMode.HALF_UP);
                                 account.setBankBalance(account.getBankBalance().subtract(event.amountToSpend()));
-                                account.setSharesOwned(account.getSharesOwned().add(shares));
+                                account.setSharesOwned(account.getSharesOwned().add(event.shares()));
                                 account.setCostBasis(account.getCostBasis().add(event.amountToSpend()));
                                 account.setMarketValue(account.getSharesOwned().multiply(event.price()));
 
                                 transactionRows.add(new Object[] {
-                                                manAccountId, symbol, event.amountToSpend(), shares, event.price(),
+                                                manAccountId, symbol, event.amountToSpend(), event.shares(),
+                                                event.price(),
                                                 "buy", Timestamp.valueOf(event.timestamp())
                                 });
 
+                                BigDecimal gain = calculateGain(account);
+                                BigDecimal gainPercent = calculateGainPercent(account, gain);
+                                pendingSnapshots.add(new PendingSnapshot(
+                                                event.price(), account.getBankBalance(), account.getSharesOwned(),
+                                                account.getCostBasis(), account.getMarketValue(), gain, gainPercent,
+                                                event.timestamp()));
+                        }
+                        if (event.sell()) {
+                                account.setBankBalance(account.getBankBalance().add(event.contribution()));
+
+                                // Average-cost method: costBasis is a running $ total, not
+                                // per-lot, so a sell reduces it by the same proportion of
+                                // shares being removed (avg cost/share * shares sold), rather
+                                // than tracking individual purchase lots.
+                                BigDecimal sharesBeforeSell = account.getSharesOwned();
+                                BigDecimal sharesSold = event.shares().abs();
+                                BigDecimal avgCostPerShare = sharesBeforeSell.compareTo(BigDecimal.ZERO) == 0
+                                                ? BigDecimal.ZERO
+                                                : account.getCostBasis().divide(sharesBeforeSell, 8,
+                                                                RoundingMode.HALF_UP);
+                                BigDecimal costBasisRemoved = avgCostPerShare.multiply(sharesSold);
+
+                                account.setSharesOwned(sharesBeforeSell.add(event.shares()));
+                                account.setCostBasis(account.getCostBasis().subtract(costBasisRemoved));
+                                account.setMarketValue(account.getSharesOwned().multiply(event.price()));
+                                transactionRows.add(new Object[] {
+                                                manAccountId, symbol, event.contribution(), event.shares(),
+                                                event.price(),
+                                                "sell", Timestamp.valueOf(event.timestamp())
+                                });
                                 BigDecimal gain = calculateGain(account);
                                 BigDecimal gainPercent = calculateGainPercent(account, gain);
                                 pendingSnapshots.add(new PendingSnapshot(
@@ -188,7 +219,7 @@ public class LedgerService {
         // order.
         private List<Long> fetchLatestBuyTransactionIds(Long manAccountId, String symbol, int count) {
                 List<Long> ids = jdbcTemplate.queryForList(
-                                "SELECT id FROM transactions WHERE man_account_id = ? AND symbol = ? AND transaction_type = 'buy' "
+                                "SELECT id FROM transactions WHERE man_account_id = ? AND symbol = ? AND transaction_type IN ('buy','sell') "
                                                 + "ORDER BY id DESC LIMIT ?",
                                 Long.class, manAccountId, symbol, count);
                 Collections.reverse(ids);
