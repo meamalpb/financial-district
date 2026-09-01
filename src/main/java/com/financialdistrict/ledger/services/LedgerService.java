@@ -7,6 +7,7 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -60,6 +61,13 @@ public class LedgerService {
                                 .orElseThrow(() -> new ResponseStatusException(
                                                 HttpStatus.NOT_FOUND, "No account found for manId: " + manId));
                 return toAccountResponse(account);
+        }
+
+        public List<AccountResponse> getAllAccounts() {
+                return manAccountRepository.findAll().stream()
+                                .sorted(Comparator.comparing(ManAccount::getManId))
+                                .map(this::toAccountResponse)
+                                .toList();
         }
 
         public AccountResponse applyBuy(BuyRequest request) {

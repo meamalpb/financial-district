@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Financial District — Men</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
+  h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+  .subtitle { color: #666; margin-bottom: 1.5rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 0.6rem 0.9rem; border-bottom: 1px solid #e5e5e5; }
+  th { font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 0.03em; }
+  tbody tr:hover { background: #f7f7f7; }
+  a.man-link { color: #4c6ef5; text-decoration: none; font-weight: 600; }
+  a.man-link:hover { text-decoration: underline; }
+  .gain-positive { color: #1a7f37; }
+  .gain-negative { color: #cf222e; }
+  .empty { color: #666; }
+</style>
+</head>
+<body>
+<h1>Men</h1>
+<div class="subtitle">
+  <span th:text="${#lists.size(accounts)}">0</span>
+  account<span th:if="${#lists.size(accounts) != 1}">s</span>
+</div>
+
+<table th:if="${!#lists.isEmpty(accounts)}">
+  <thead>
+    <tr>
+      <th>Man</th>
+      <th>Symbol</th>
+      <th>Bank Balance</th>
+      <th>Shares Owned</th>
+      <th>Cost Basis</th>
+      <th>Market Value</th>
+      <th>Gain</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="account : ${accounts}">
+      <td>
+        <a class="man-link" th:text="${account.manId}"
+           th:href="@{'/internal/accounts/' + ${account.manId} + '/chart'}">man</a>
+      </td>
+      <td th:text="${account.symbol}">SYM</td>
+      <td>$<span th:text="${account.bankBalance}">0</span></td>
+      <td th:text="${account.sharesOwned}">0</td>
+      <td>$<span th:text="${account.costBasis}">0</span></td>
+      <td>$<span th:text="${account.marketValue}">0</span></td>
+      <td th:classappend="${account.gain.signum() < 0} ? 'gain-negative' : 'gain-positive'">
+        $<span th:text="${account.gain}">0</span> (<span th:text="${account.gainPercent}">0</span>%)
+      </td>
+      <td th:text="${account.updatedAt}">-</td>
+    </tr>
+  </tbody>
+</table>
+<p class="empty" th:if="${#lists.isEmpty(accounts)}">No Man accounts yet.</p>
+</body>
+</html>
