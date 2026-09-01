@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title th:text="${manId} + ' — Account Snapshots'">Account Snapshots</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <style>
   body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
   h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
@@ -57,32 +58,46 @@
 
   if (snapshots.length > 0) {
     const ctx = document.getElementById('snapshotChart');
+    // Points are {x, y} (not a shared `labels` array) so the x axis can use
+    // Chart.js's time scale instead of one category tick per snapshot -
+    // with 8000+ snapshots, a category axis lays out and rotates every
+    // single timestamp as its own label, which is both illegible and slow.
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: snapshots.map(s => s.timestamp),
         datasets: [
           {
             label: 'Cost Basis',
-            data: snapshots.map(s => s.costBasis),
+            data: snapshots.map(s => ({ x: Date.parse(s.timestamp), y: s.costBasis })),
             borderColor: '#4c6ef5',
             backgroundColor: '#4c6ef5',
             tension: 0.1,
+            pointRadius: 0,
+            borderWidth: 1.5,
           },
           {
             label: 'Market Value',
-            data: snapshots.map(s => s.marketValue),
+            data: snapshots.map(s => ({ x: Date.parse(s.timestamp), y: s.marketValue })),
             borderColor: '#1a7f37',
             backgroundColor: '#1a7f37',
             tension: 0.1,
+            pointRadius: 0,
+            borderWidth: 1.5,
           },
         ],
       },
       options: {
         responsive: true,
+        animation: false,
+        normalized: true,
+        parsing: false,
         interaction: { mode: 'index', intersect: false },
         scales: {
-          x: { title: { display: true, text: 'Transaction time' } },
+          x: {
+            type: 'time',
+            title: { display: true, text: 'Transaction time' },
+            ticks: { autoSkip: true, maxRotation: 0 },
+          },
           y: { title: { display: true, text: 'USD' } },
         },
       },
