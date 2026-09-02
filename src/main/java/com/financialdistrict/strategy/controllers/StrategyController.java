@@ -18,4 +18,14 @@ public class StrategyController {
         return strategyEngineService.simulateForPrototypeMan();
     }
 
+    @GetMapping("/internal/simulate-sisyphus")
+    public String simulateSisyphus() {
+        return strategyEngineService.simulateForSisyphus();
+    }
+
+    @GetMapping("/internal/simulate-selling-man")
+    public String simulateSellingMan() {
+        return strategyEngineService.simulateSelling();
+    }
+
 }

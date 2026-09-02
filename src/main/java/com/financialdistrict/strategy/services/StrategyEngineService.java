@@ -37,12 +37,14 @@ public class StrategyEngineService {
         return "Done";
     }
 
-    public void simulateForSisyphus() {
+    public String simulateForSisyphus() {
         sisyphusMan.process();
+        return "Done";
     }
 
-    public void simulateSelling(){
+    public String simulateSelling(){
         sellingMan.process();
+        return "Done";
     }
 
 }
