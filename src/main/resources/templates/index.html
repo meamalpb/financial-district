@@ -28,6 +28,16 @@
     font-size: 0.9rem;
   }
   .simulations a:hover { background: #f0f0f0; }
+  .delete-btn {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #cf222e;
+    border-radius: 4px;
+    background: #fff;
+    color: #cf222e;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .delete-btn:hover { background: #cf222e; color: #fff; }
 </style>
 </head>
 <body>
@@ -54,6 +64,7 @@
       <th>Cost Basis</th>
       <th>Market Value</th>
       <th>Gain</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
@@ -70,9 +81,30 @@
       <td th:classappend="${account.gain.signum() < 0} ? 'gain-negative' : 'gain-positive'">
         $<span th:text="${account.gain}">0</span> (<span th:text="${account.gainPercent}">0</span>%)
       </td>
+      <td>
+        <button class="delete-btn" th:attr="data-man-id=${account.manId}" onclick="deleteAccount(this)">Delete</button>
+      </td>
     </tr>
   </tbody>
 </table>
 <p class="empty" th:if="${#lists.isEmpty(accounts)}">No Man accounts yet.</p>
+<script th:inline="javascript">
+  function deleteAccount(button) {
+    var manId = button.getAttribute('data-man-id');
+    if (!confirm('Delete account for "' + manId + '"? This cannot be undone.')) {
+      return;
+    }
+    fetch('/internal/accounts/' + encodeURIComponent(manId), { method: 'DELETE' })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Delete failed: ' + response.status);
+        }
+        location.reload();
+      })
+      .catch(function (err) {
+        alert(err.message);
+      });
+  }
+</script>
 </body>
 </html>

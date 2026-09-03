@@ -2,6 +2,7 @@ package com.financialdistrict.ledger.controllers;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,5 +36,10 @@ public class LedgerController {
     @GetMapping("/accounts/{manId}/snapshots")
     public List<AccountSnapshotResponse> getSnapshots(@PathVariable String manId) {
         return ledgerService.getSnapshots(manId);
+    }
+
+    @DeleteMapping("/accounts/{manId}")
+    public void deleteAccount(@PathVariable String manId) {
+        ledgerService.deleteAccount(manId);
     }
 }

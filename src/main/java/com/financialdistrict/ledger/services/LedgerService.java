@@ -63,8 +63,16 @@ public class LedgerService {
                 return toAccountResponse(account);
         }
 
+        public void deleteAccount(String manId) {
+                ManAccount account = manAccountRepository.findByManId(manId)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND, "No account found for manId: " + manId));
+                manAccountRepository.delete(account);
+        }
+
         public List<AccountResponse> getAllAccounts() {
                 return manAccountRepository.findAll().stream()
+                                .filter(account -> !"TESTSTOCK".equals(account.getSymbol()))
                                 .sorted(Comparator.comparing(ManAccount::getManId))
                                 .map(this::toAccountResponse)
                                 .toList();
