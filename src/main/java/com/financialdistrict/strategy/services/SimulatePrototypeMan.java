@@ -36,6 +36,8 @@ public class SimulatePrototypeMan {
     }
 
     public void process() {
+        BigDecimal dailyIncome = BigDecimal.ONE;
+
         ManConfig manConfig = getMan("prototype-man", "SPY");
         String symbol = manConfig.getSymbols().get(0);
 
@@ -55,22 +57,22 @@ public class SimulatePrototypeMan {
 
         for (PriceBarResponse bar : bars) {
             LocalDateTime barTimestamp = bar.date().atStartOfDay();
-            runningBalance = runningBalance.add(BigDecimal.ONE);
+            BigDecimal closingPrice = bar.close();
+            runningBalance = runningBalance.add(dailyIncome);
 
             boolean shouldBuy = false;
-            boolean shouldSell = false;
             BigDecimal amountToSpend = BigDecimal.ZERO;
             BigDecimal shares = BigDecimal.ZERO;
-            if (bar.close().compareTo(runningBalance) < 1) {
-                shares = runningBalance.divide(bar.close(), 8, RoundingMode.DOWN);
-                amountToSpend = bar.close().multiply(shares);
+            if (closingPrice.compareTo(runningBalance) < 1) {
+                shares = runningBalance.divide(closingPrice, 8, RoundingMode.DOWN);
+                amountToSpend = closingPrice.multiply(shares);
                 runningBalance = runningBalance.subtract(amountToSpend);
                 shouldBuy = true;
             }
 
-            events.add(new SimulationBarEvent(shares, BigDecimal.ONE, bar.close(), shouldBuy,shouldSell, amountToSpend, barTimestamp));
+            events.add(new SimulationBarEvent(shares, dailyIncome, closingPrice, shouldBuy, false, amountToSpend,
+                    barTimestamp));
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
-
     }
 }

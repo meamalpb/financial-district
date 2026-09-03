@@ -36,10 +36,11 @@ public class SellingMan {
     }
 
     public void process() {
-        int SELLDAY = 7;
+        int sellDay = 7;
         BigDecimal dailyIncome = BigDecimal.ONE;
+        BigDecimal sellAmount = BigDecimal.valueOf(5);
 
-        ManConfig manConfig = getMan("selling-ma", "SPY");
+        ManConfig manConfig = getMan("selling-man", "SPY");
         String symbol = manConfig.getSymbols().get(0);
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
@@ -53,37 +54,29 @@ public class SellingMan {
         int i = 0;
         for (PriceBarResponse bar : bars) {
             LocalDateTime barTimestamp = bar.date().atStartOfDay();
+            BigDecimal closingPrice = bar.close();
+            runningBalance = runningBalance.add(dailyIncome);
 
-            BigDecimal closing_price = bar.close();
-            BigDecimal contribution = dailyIncome;
-            boolean shouldBuy = false;
-            boolean shouldSell = false;
-            BigDecimal amountToSpend = BigDecimal.ZERO;
-            BigDecimal shares = BigDecimal.ZERO;
-            BigDecimal SellAmount = BigDecimal.valueOf(5);
+            if (i == sellDay) {
+                // Daily income still needs its own row here: the sell event below
+                // reuses the contribution field to carry sale proceeds instead.
+                events.add(new SimulationBarEvent(BigDecimal.ZERO, dailyIncome, closingPrice, false, false,
+                        BigDecimal.ZERO, barTimestamp));
 
-            runningBalance = runningBalance.add(contribution);
-            events.add(new SimulationBarEvent(shares, contribution, closing_price, shouldBuy, shouldSell, amountToSpend,
-                    barTimestamp));
-
-            if (i == SELLDAY) {
-                shouldSell = true;
-                shares = SellAmount.divide(closing_price, 8, RoundingMode.DOWN).negate();
-                BigDecimal shareSellAmount = shares.multiply(closing_price).abs();
+                BigDecimal shares = sellAmount.divide(closingPrice, 8, RoundingMode.DOWN).negate();
+                BigDecimal shareSellAmount = shares.multiply(closingPrice).abs();
                 runningBalance = runningBalance.add(shareSellAmount);
-                contribution = shareSellAmount;
+                events.add(new SimulationBarEvent(shares, shareSellAmount, closingPrice, false, true,
+                        BigDecimal.ZERO, barTimestamp));
             } else {
-                shares = runningBalance.divide(closing_price, 8, RoundingMode.DOWN);
-                amountToSpend = closing_price.multiply(shares);
+                BigDecimal shares = runningBalance.divide(closingPrice, 8, RoundingMode.DOWN);
+                BigDecimal amountToSpend = closingPrice.multiply(shares);
                 runningBalance = runningBalance.subtract(amountToSpend);
-                shouldBuy = true;
-                contribution = BigDecimal.ZERO;
+                events.add(new SimulationBarEvent(shares, dailyIncome, closingPrice, true, false, amountToSpend,
+                        barTimestamp));
             }
-            events.add(new SimulationBarEvent(shares, contribution, closing_price, shouldBuy, shouldSell, amountToSpend,
-                    barTimestamp));
             i++;
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
-
     }
 }

@@ -36,6 +36,8 @@ public class SisyphusMan {
     }
 
     public void process() {
+        BigDecimal dailyIncome = BigDecimal.ONE;
+
         ManConfig manConfig = getMan("sisyphus", "SPY");
         String symbol = manConfig.getSymbols().get(0);
 
@@ -50,18 +52,16 @@ public class SisyphusMan {
 
         for (PriceBarResponse bar : bars) {
             LocalDateTime barTimestamp = bar.date().atStartOfDay();
-            runningBalance = runningBalance.add(BigDecimal.ONE);
+            BigDecimal closingPrice = bar.close();
+            runningBalance = runningBalance.add(dailyIncome);
 
-            boolean shouldBuy = false;
-            boolean shouldSell = false;
-            BigDecimal amountToSpend = BigDecimal.ZERO;
-            BigDecimal shares = runningBalance.divide(bar.close(), 8, RoundingMode.DOWN);
-            amountToSpend = bar.close().multiply(shares);
+            BigDecimal shares = runningBalance.divide(closingPrice, 8, RoundingMode.DOWN);
+            BigDecimal amountToSpend = closingPrice.multiply(shares);
             runningBalance = runningBalance.subtract(amountToSpend);
-            shouldBuy = true;
-            events.add(new SimulationBarEvent(shares, BigDecimal.ONE, bar.close(), shouldBuy,shouldSell, amountToSpend, barTimestamp));
+
+            events.add(new SimulationBarEvent(shares, dailyIncome, closingPrice, true, false, amountToSpend,
+                    barTimestamp));
         }
         ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
-
     }
 }
