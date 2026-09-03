@@ -38,6 +38,30 @@
     cursor: pointer;
   }
   .delete-btn:hover { background: #cf222e; color: #fff; }
+  h2 { font-size: 1.05rem; margin: 2rem 0 0.75rem; }
+  .backfill-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .backfill-form input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+  }
+  .backfill-form button {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid #4c6ef5;
+    border-radius: 4px;
+    background: #4c6ef5;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .backfill-form button:disabled { opacity: 0.6; cursor: default; }
+  .backfill-status { font-size: 0.85rem; color: #666; margin: -0.5rem 0 1rem; }
 </style>
 </head>
 <body>
@@ -89,7 +113,63 @@
   </tbody>
 </table>
 <p class="empty" th:if="${#lists.isEmpty(accounts)}">No Man accounts yet.</p>
+
+<h2>Price History</h2>
+<form class="backfill-form" id="backfill-form" onsubmit="return backfillSymbol(event)">
+  <input type="text" id="backfill-symbol" placeholder="Symbol (e.g. SPY)" required>
+  <button type="submit" id="backfill-btn">Backfill</button>
+</form>
+<p class="backfill-status" id="backfill-status"></p>
+
+<table th:if="${!#lists.isEmpty(priceHistorySummaries)}">
+  <thead>
+    <tr>
+      <th>Symbol</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Entries</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="summary : ${priceHistorySummaries}">
+      <td th:text="${summary.symbol}">SYM</td>
+      <td th:text="${summary.fromDate}">-</td>
+      <td th:text="${summary.toDate}">-</td>
+      <td th:text="${summary.barCount}">0</td>
+    </tr>
+  </tbody>
+</table>
+<p class="empty" th:if="${#lists.isEmpty(priceHistorySummaries)}">No price history saved yet.</p>
+
 <script th:inline="javascript">
+  function backfillSymbol(event) {
+    event.preventDefault();
+    var input = document.getElementById('backfill-symbol');
+    var button = document.getElementById('backfill-btn');
+    var status = document.getElementById('backfill-status');
+    var symbol = input.value.trim().toUpperCase();
+    if (!symbol) {
+      return false;
+    }
+    button.disabled = true;
+    status.textContent = 'Backfilling ' + symbol + '… this can take a moment.';
+    fetch('/internal/prices/' + encodeURIComponent(symbol) + '/backfill', { method: 'POST' })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Backfill failed: ' + response.status);
+        }
+        return response.text();
+      })
+      .then(function () {
+        location.reload();
+      })
+      .catch(function (err) {
+        button.disabled = false;
+        status.textContent = err.message;
+      });
+    return false;
+  }
+
   function deleteAccount(button) {
     var manId = button.getAttribute('data-man-id');
     if (!confirm('Delete account for "' + manId + '"? This cannot be undone.')) {

@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.financialdistrict.price.dto.PriceBarResponse;
+import com.financialdistrict.price.dto.PriceHistorySummaryResponse;
 import com.financialdistrict.price.models.Quote;
 
 import lombok.RequiredArgsConstructor;
@@ -33,5 +34,9 @@ public class PriceService {
         return priceHistoryService.getHistory(symbol).stream()
                 .map(bar -> new PriceBarResponse(bar.getSymbol(), bar.getDate(), bar.getClose()))
                 .toList();
+    }
+
+    public List<PriceHistorySummaryResponse> getPriceHistorySummaries() {
+        return priceHistoryService.getSummaries();
     }
 }

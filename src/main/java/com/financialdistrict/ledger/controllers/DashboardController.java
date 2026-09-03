@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import com.financialdistrict.ledger.dto.AccountResponse;
 import com.financialdistrict.ledger.services.LedgerService;
+import com.financialdistrict.price.services.PriceService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,11 +19,13 @@ import lombok.RequiredArgsConstructor;
 public class DashboardController {
 
     private final LedgerService ledgerService;
+    private final PriceService priceService;
 
     @GetMapping("/")
     public String index(Model model) {
         List<AccountResponse> accounts = ledgerService.getAllAccounts();
         model.addAttribute("accounts", accounts);
+        model.addAttribute("priceHistorySummaries", priceService.getPriceHistorySummaries());
         return "index";
     }
 

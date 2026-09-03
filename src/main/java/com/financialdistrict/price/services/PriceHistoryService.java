@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import com.financialdistrict.price.dto.PriceHistorySummaryResponse;
 import com.financialdistrict.price.dto.TwelveDataTimeSeriesResponse;
 import com.financialdistrict.price.mappers.PriceHistoryMapper;
 import com.financialdistrict.price.models.PriceHistory;
@@ -61,6 +62,10 @@ public class PriceHistoryService {
 
     public List<PriceHistory> getHistory(String symbol) {
         return priceHistoryRepository.findBySymbolOrderByDateAsc(symbol);
+    }
+
+    public List<PriceHistorySummaryResponse> getSummaries() {
+        return priceHistoryRepository.getSummaries();
     }
 
     @Transactional
