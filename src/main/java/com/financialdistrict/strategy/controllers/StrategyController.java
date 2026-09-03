@@ -28,4 +28,9 @@ public class StrategyController {
         return strategyEngineService.simulateSelling();
     }
 
+    @GetMapping("/internal/simulate-drop-selling-man")
+    public String simulateDropSellingMan() {
+        return strategyEngineService.simulateDropSelling();
+    }
+
 }

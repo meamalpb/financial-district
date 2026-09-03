@@ -18,6 +18,7 @@ public class StrategyEngineService {
     private final SimulatePrototypeMan simulatePrototypeMan;
     private final SisyphusMan sisyphusMan;
     private final SellingMan sellingMan;
+    private final DropSellingMan dropSellingMan;
 
     public ManConfig getMan(String manId, String symbol) {
         AccountResponse accountResponse = ledgerService.getAccount(manId, symbol);
@@ -44,6 +45,11 @@ public class StrategyEngineService {
 
     public String simulateSelling(){
         sellingMan.process();
+        return "Done";
+    }
+
+    public String simulateDropSelling() {
+        dropSellingMan.process();
         return "Done";
     }
 
