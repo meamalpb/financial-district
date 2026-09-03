@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
 <meta charset="UTF-8">
-<title>Financial District — Men</title>
+<title>Financial District — Dummy Data</title>
 <style>
   body { font-family: system-ui, sans-serif; margin: 2rem; color: #1a1a1a; }
   h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
@@ -13,21 +13,11 @@
   tbody tr:hover { background: #f7f7f7; }
   a.man-link { color: #4c6ef5; text-decoration: none; font-weight: 600; }
   a.man-link:hover { text-decoration: underline; }
+  a.back-link { color: #4c6ef5; text-decoration: none; font-size: 0.9rem; }
+  a.back-link:hover { text-decoration: underline; }
   .gain-positive { color: #1a7f37; }
   .gain-negative { color: #cf222e; }
   .empty { color: #666; }
-  .simulations { margin-bottom: 1.5rem; }
-  .simulations a {
-    display: inline-block;
-    margin: 0 0.5rem 0.5rem 0;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    color: #1a1a1a;
-    text-decoration: none;
-    font-size: 0.9rem;
-  }
-  .simulations a:hover { background: #f0f0f0; }
   .delete-btn {
     padding: 0.3rem 0.7rem;
     border: 1px solid #cf222e;
@@ -41,18 +31,12 @@
 </style>
 </head>
 <body>
-<h1>Men</h1>
+<p><a class="back-link" th:href="@{/}">&larr; Back to Men</a></p>
+<h1>Dummy Data (TESTSTOCK)</h1>
 <div class="subtitle">
   <span th:text="${#lists.size(accounts)}">0</span>
   account<span th:if="${#lists.size(accounts) != 1}">s</span>
-</div>
-
-<div class="simulations">
-  <a th:href="@{/internal/simulate-prototype-man}" target="_blank">Simulate Prototype Man</a>
-  <a th:href="@{/internal/simulate-sisyphus}" target="_blank">Simulate Sisyphus</a>
-  <a th:href="@{/internal/simulate-selling-man}" target="_blank">Simulate Selling Man</a>
-  <a th:href="@{/internal/simulate-drop-selling-man}" target="_blank">Simulate Drop Selling Man</a>
-  <a th:href="@{/dummy-data}">Dummy Data</a>
+  &mdash; hidden from the main dashboard, symbol = TESTSTOCK
 </div>
 
 <table th:if="${!#lists.isEmpty(accounts)}">
@@ -88,7 +72,7 @@
     </tr>
   </tbody>
 </table>
-<p class="empty" th:if="${#lists.isEmpty(accounts)}">No Man accounts yet.</p>
+<p class="empty" th:if="${#lists.isEmpty(accounts)}">No dummy accounts yet.</p>
 <script th:inline="javascript">
   function deleteAccount(button) {
     var manId = button.getAttribute('data-man-id');

@@ -78,6 +78,17 @@ public class LedgerService {
                                 .toList();
         }
 
+        // Mirrors getAllAccounts() but returns only the dummy/test accounts it
+        // excludes, so simulation test runs stay visible somewhere without
+        // cluttering the main dashboard.
+        public List<AccountResponse> getTestAccounts() {
+                return manAccountRepository.findAll().stream()
+                                .filter(account -> "TESTSTOCK".equals(account.getSymbol()))
+                                .sorted(Comparator.comparing(ManAccount::getManId))
+                                .map(this::toAccountResponse)
+                                .toList();
+        }
+
         public AccountResponse applyBuy(BuyRequest request) {
                 ManAccount account = manAccountRepository.findByManId(request.manId())
                                 .orElseGet(() -> ManAccount.builder()

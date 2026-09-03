@@ -25,4 +25,11 @@ public class DashboardController {
         model.addAttribute("accounts", accounts);
         return "index";
     }
+
+    @GetMapping("/dummy-data")
+    public String dummyData(Model model) {
+        List<AccountResponse> accounts = ledgerService.getTestAccounts();
+        model.addAttribute("accounts", accounts);
+        return "dummy-data";
+    }
 }
