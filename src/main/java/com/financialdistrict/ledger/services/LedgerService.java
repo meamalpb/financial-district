@@ -63,6 +63,10 @@ public class LedgerService {
                 return toAccountResponse(account);
         }
 
+        public boolean accountExists(String manId) {
+                return manAccountRepository.findByManId(manId).isPresent();
+        }
+
         public void deleteAccount(String manId) {
                 ManAccount account = manAccountRepository.findByManId(manId)
                                 .orElseThrow(() -> new ResponseStatusException(

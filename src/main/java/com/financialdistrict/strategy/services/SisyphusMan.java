@@ -15,7 +15,7 @@ import com.financialdistrict.ledger.dto.SimulationBarEvent;
 import com.financialdistrict.ledger.services.LedgerService;
 import com.financialdistrict.price.dto.PriceBarResponse;
 import com.financialdistrict.price.services.PriceService;
-import com.financialdistrict.strategy.models.ManConfig;
+import com.financialdistrict.strategy.dto.SimulateSisyphusRequest;
 
 import lombok.AllArgsConstructor;
 
@@ -25,21 +25,15 @@ public class SisyphusMan {
     private final LedgerService ledgerService;
     private final PriceService priceService;
 
-    public ManConfig getMan(String manId, String symbol) {
-        AccountResponse accountResponse = ledgerService.getAccount(manId, symbol);
-        ManConfig config = new ManConfig();
-        config.setManId(accountResponse.manId());
-        config.setSymbols(List.of(accountResponse.symbol()));
-        config.setActive(true);
-        config.setCurrentBalance(accountResponse.bankBalance());
-        return config;
-    }
+    public AccountResponse process(SimulateSisyphusRequest request) {
+        String symbol = SimulationRequests.require(request.symbol(), "symbol").toUpperCase();
+        BigDecimal dailyIncome = SimulationRequests.require(request.dailyIncome(), "dailyIncome");
 
-    public void process() {
-        BigDecimal dailyIncome = BigDecimal.ONE;
-
-        ManConfig manConfig = getMan("sisyphus", "SPY");
-        String symbol = manConfig.getSymbols().get(0);
+        String manId = ManIdSlug.build("sisyphus", symbol, "inc" + ManIdSlug.number(dailyIncome));
+        if (ledgerService.accountExists(manId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A man account already exists for these exact parameters: " + manId);
+        }
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
         if (bars.isEmpty()) {
@@ -47,7 +41,7 @@ public class SisyphusMan {
                     "No backfilled price history for " + symbol);
         }
 
-        BigDecimal runningBalance = manConfig.getCurrentBalance();
+        BigDecimal runningBalance = BigDecimal.ZERO;
         List<SimulationBarEvent> events = new ArrayList<>(bars.size());
 
         for (PriceBarResponse bar : bars) {
@@ -62,6 +56,6 @@ public class SisyphusMan {
             events.add(new SimulationBarEvent(shares, dailyIncome, closingPrice, true, false, amountToSpend,
                     barTimestamp));
         }
-        ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
+        return ledgerService.processSimulationBatch(manId, symbol, events);
     }
 }

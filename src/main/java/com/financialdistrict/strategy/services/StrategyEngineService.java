@@ -1,12 +1,12 @@
 package com.financialdistrict.strategy.services;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 
 import com.financialdistrict.ledger.dto.AccountResponse;
-import com.financialdistrict.ledger.services.LedgerService;
-import com.financialdistrict.strategy.models.ManConfig;
+import com.financialdistrict.strategy.dto.SimulateDropSellingManRequest;
+import com.financialdistrict.strategy.dto.SimulatePrototypeManRequest;
+import com.financialdistrict.strategy.dto.SimulateSellingManRequest;
+import com.financialdistrict.strategy.dto.SimulateSisyphusRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -14,43 +14,28 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class StrategyEngineService {
 
-    private final LedgerService ledgerService;
     private final SimulatePrototypeMan simulatePrototypeMan;
     private final SisyphusMan sisyphusMan;
     private final SellingMan sellingMan;
     private final DropSellingMan dropSellingMan;
 
-    public ManConfig getMan(String manId, String symbol) {
-        AccountResponse accountResponse = ledgerService.getAccount(manId, symbol);
-        ManConfig config = new ManConfig();
-        config.setManId(accountResponse.manId());
-        config.setSymbols(List.of(accountResponse.symbol()));
-        config.setActive(true);
-        config.setCurrentBalance(accountResponse.bankBalance());
-        return config;
-    }
-
     // Replays historical price bars against a Man's account, one buy decision
     // per bar, so the resulting transactions read as if this Man had actually
     // been running since the start date.
-    public String simulateForPrototypeMan() {
-        simulatePrototypeMan.process();
-        return "Done";
+    public AccountResponse simulateForPrototypeMan(SimulatePrototypeManRequest request) {
+        return simulatePrototypeMan.process(request);
     }
 
-    public String simulateForSisyphus() {
-        sisyphusMan.process();
-        return "Done";
+    public AccountResponse simulateForSisyphus(SimulateSisyphusRequest request) {
+        return sisyphusMan.process(request);
     }
 
-    public String simulateSelling(){
-        sellingMan.process();
-        return "Done";
+    public AccountResponse simulateSelling(SimulateSellingManRequest request) {
+        return sellingMan.process(request);
     }
 
-    public String simulateDropSelling() {
-        dropSellingMan.process();
-        return "Done";
+    public AccountResponse simulateDropSelling(SimulateDropSellingManRequest request) {
+        return dropSellingMan.process(request);
     }
 
 }

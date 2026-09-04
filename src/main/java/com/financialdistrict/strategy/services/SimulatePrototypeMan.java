@@ -15,7 +15,7 @@ import com.financialdistrict.ledger.dto.SimulationBarEvent;
 import com.financialdistrict.ledger.services.LedgerService;
 import com.financialdistrict.price.dto.PriceBarResponse;
 import com.financialdistrict.price.services.PriceService;
-import com.financialdistrict.strategy.models.ManConfig;
+import com.financialdistrict.strategy.dto.SimulatePrototypeManRequest;
 
 import lombok.AllArgsConstructor;
 
@@ -25,21 +25,18 @@ public class SimulatePrototypeMan {
     private final LedgerService ledgerService;
     private final PriceService priceService;
 
-    public ManConfig getMan(String manId, String symbol) {
-        AccountResponse accountResponse = ledgerService.getAccount(manId, symbol);
-        ManConfig config = new ManConfig();
-        config.setManId(accountResponse.manId());
-        config.setSymbols(List.of(accountResponse.symbol()));
-        config.setActive(true);
-        config.setCurrentBalance(accountResponse.bankBalance());
-        return config;
-    }
+    // Replays historical price bars against a Man's account, one buy decision
+    // per bar, so the resulting transactions read as if this Man had actually
+    // been running since the start date.
+    public AccountResponse process(SimulatePrototypeManRequest request) {
+        String symbol = SimulationRequests.require(request.symbol(), "symbol").toUpperCase();
+        BigDecimal dailyIncome = SimulationRequests.require(request.dailyIncome(), "dailyIncome");
 
-    public void process() {
-        BigDecimal dailyIncome = BigDecimal.ONE;
-
-        ManConfig manConfig = getMan("prototype-man", "SPY");
-        String symbol = manConfig.getSymbols().get(0);
+        String manId = ManIdSlug.build("prototype-man", symbol, "inc" + ManIdSlug.number(dailyIncome));
+        if (ledgerService.accountExists(manId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A man account already exists for these exact parameters: " + manId);
+        }
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
         if (bars.isEmpty()) {
@@ -52,7 +49,7 @@ public class SimulatePrototypeMan {
         // then the whole run is handed to LedgerService in one shot so it can
         // persist every bar's effects via jdbcTemplate.batchUpdate instead of
         // this loop doing a DB round trip per bar.
-        BigDecimal runningBalance = manConfig.getCurrentBalance();
+        BigDecimal runningBalance = BigDecimal.ZERO;
         List<SimulationBarEvent> events = new ArrayList<>(bars.size());
 
         for (PriceBarResponse bar : bars) {
@@ -73,6 +70,6 @@ public class SimulatePrototypeMan {
             events.add(new SimulationBarEvent(shares, dailyIncome, closingPrice, shouldBuy, false, amountToSpend,
                     barTimestamp));
         }
-        ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
+        return ledgerService.processSimulationBatch(manId, symbol, events);
     }
 }

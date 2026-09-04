@@ -17,7 +17,7 @@ import com.financialdistrict.ledger.dto.SimulationBarEvent;
 import com.financialdistrict.ledger.services.LedgerService;
 import com.financialdistrict.price.dto.PriceBarResponse;
 import com.financialdistrict.price.services.PriceService;
-import com.financialdistrict.strategy.models.ManConfig;
+import com.financialdistrict.strategy.dto.SimulateDropSellingManRequest;
 
 import lombok.AllArgsConstructor;
 
@@ -32,23 +32,20 @@ public class DropSellingMan {
     private final LedgerService ledgerService;
     private final PriceService priceService;
 
-    public ManConfig getMan(String manId, String symbol) {
-        AccountResponse accountResponse = ledgerService.getAccount(manId, symbol);
-        ManConfig config = new ManConfig();
-        config.setManId(accountResponse.manId());
-        config.setSymbols(List.of(accountResponse.symbol()));
-        config.setActive(true);
-        config.setCurrentBalance(accountResponse.bankBalance());
-        return config;
-    }
+    public AccountResponse process(SimulateDropSellingManRequest request) {
+        String symbol = SimulationRequests.require(request.symbol(), "symbol").toUpperCase();
+        BigDecimal dailyIncome = SimulationRequests.require(request.dailyIncome(), "dailyIncome");
+        BigDecimal sellAmount = SimulationRequests.require(request.sellAmount(), "sellAmount");
+        int trailingWindow = SimulationRequests.require(request.trailingWindow(), "trailingWindow");
 
-    public void process() {
-        int trailingWindow = 100;
-        BigDecimal dailyIncome = BigDecimal.ONE;
-        BigDecimal sellAmount = BigDecimal.valueOf(80);
-
-        ManConfig manConfig = getMan("drop-selling-man", "SPY");
-        String symbol = manConfig.getSymbols().get(0);
+        String manId = ManIdSlug.build("drop-selling-man", symbol,
+                "inc" + ManIdSlug.number(dailyIncome),
+                "tw" + trailingWindow,
+                "sell" + ManIdSlug.number(sellAmount));
+        if (ledgerService.accountExists(manId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A man account already exists for these exact parameters: " + manId);
+        }
 
         List<PriceBarResponse> bars = priceService.getPriceHistory(symbol);
         if (bars.isEmpty()) {
@@ -56,7 +53,7 @@ public class DropSellingMan {
                     "No backfilled price history for " + symbol);
         }
 
-        BigDecimal runningBalance = manConfig.getCurrentBalance();
+        BigDecimal runningBalance = BigDecimal.ZERO;
         List<SimulationBarEvent> events = new ArrayList<>(bars.size());
         Deque<BigDecimal> trailingCloses = new ArrayDeque<>(trailingWindow);
 
@@ -90,7 +87,7 @@ public class DropSellingMan {
             }
             trailingCloses.addLast(closingPrice);
         }
-        ledgerService.processSimulationBatch(manConfig.getManId(), symbol, events);
+        return ledgerService.processSimulationBatch(manId, symbol, events);
     }
 
     private BigDecimal min(Deque<BigDecimal> values) {

@@ -62,6 +62,60 @@
   }
   .backfill-form button:disabled { opacity: 0.6; cursor: default; }
   .backfill-status { font-size: 0.85rem; color: #666; margin: -0.5rem 0 1rem; }
+  .simulations button {
+    display: inline-block;
+    margin: 0 0.5rem 0.5rem 0;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background: #fff;
+    color: #1a1a1a;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .simulations button:hover { background: #f0f0f0; }
+  .modal-backdrop[hidden] { display: none; }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 6px;
+    padding: 1.5rem;
+    width: 320px;
+    max-width: 90vw;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+  .modal h3 { margin: 0 0 1rem; font-size: 1.05rem; }
+  .modal-field { margin-bottom: 0.9rem; }
+  .modal-field label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 0.3rem; }
+  .modal-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  .modal-status { font-size: 0.85rem; color: #cf222e; min-height: 1.1em; margin: 0 0 0.75rem; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+  .modal-actions button {
+    padding: 0.4rem 0.9rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .modal-actions button[type="button"] { border: 1px solid #d0d0d0; background: #fff; }
+  .modal-actions button[type="submit"] { border: 1px solid #4c6ef5; background: #4c6ef5; color: #fff; }
+  .modal-actions button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
 </style>
 </head>
 <body>
@@ -72,11 +126,25 @@
 </div>
 
 <div class="simulations">
-  <a th:href="@{/internal/simulate-prototype-man}" target="_blank">Simulate Prototype Man</a>
-  <a th:href="@{/internal/simulate-sisyphus}" target="_blank">Simulate Sisyphus</a>
-  <a th:href="@{/internal/simulate-selling-man}" target="_blank">Simulate Selling Man</a>
-  <a th:href="@{/internal/simulate-drop-selling-man}" target="_blank">Simulate Drop Selling Man</a>
+  <button type="button" onclick="openSimModal('prototype-man')">Simulate Prototype Man</button>
+  <button type="button" onclick="openSimModal('sisyphus')">Simulate Sisyphus</button>
+  <button type="button" onclick="openSimModal('selling-man')">Simulate Selling Man</button>
+  <button type="button" onclick="openSimModal('drop-selling-man')">Simulate Drop Selling Man</button>
   <a th:href="@{/dummy-data}">Dummy Data</a>
+</div>
+
+<div class="modal-backdrop" id="sim-modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="sim-modal-title">Simulate</h3>
+    <form id="sim-modal-form" onsubmit="return submitSimModal(event)">
+      <div id="sim-modal-fields"></div>
+      <p class="modal-status" id="sim-modal-status"></p>
+      <div class="modal-actions">
+        <button type="button" onclick="closeSimModal()">Cancel</button>
+        <button type="submit" id="sim-modal-submit">Run</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <table th:if="${!#lists.isEmpty(accounts)}">
@@ -142,6 +210,151 @@
 <p class="empty" th:if="${#lists.isEmpty(priceHistorySummaries)}">No price history saved yet.</p>
 
 <script th:inline="javascript">
+  var SIMULATIONS = {
+    'prototype-man': {
+      title: 'Simulate Prototype Man',
+      endpoint: '/internal/simulate-prototype-man',
+      fields: [
+        { name: 'symbol', label: 'Symbol', type: 'text', value: 'SPY' },
+        { name: 'dailyIncome', label: 'Daily Income ($)', type: 'number', value: '1' }
+      ]
+    },
+    'sisyphus': {
+      title: 'Simulate Sisyphus',
+      endpoint: '/internal/simulate-sisyphus',
+      fields: [
+        { name: 'symbol', label: 'Symbol', type: 'text', value: 'SPY' },
+        { name: 'dailyIncome', label: 'Daily Income ($)', type: 'number', value: '1' }
+      ]
+    },
+    'selling-man': {
+      title: 'Simulate Selling Man',
+      endpoint: '/internal/simulate-selling-man',
+      fields: [
+        { name: 'symbol', label: 'Symbol', type: 'text', value: 'SPY' },
+        { name: 'dailyIncome', label: 'Daily Income ($)', type: 'number', value: '1' },
+        { name: 'sellAmount', label: 'Sell Amount ($)', type: 'number', value: '5' },
+        { name: 'sellDay', label: 'Sell Day (bar #)', type: 'number', integer: true, value: '7' }
+      ]
+    },
+    'drop-selling-man': {
+      title: 'Simulate Drop Selling Man',
+      endpoint: '/internal/simulate-drop-selling-man',
+      fields: [
+        { name: 'symbol', label: 'Symbol', type: 'text', value: 'SPY' },
+        { name: 'dailyIncome', label: 'Daily Income ($)', type: 'number', value: '1' },
+        { name: 'sellAmount', label: 'Sell Amount ($)', type: 'number', value: '80' },
+        { name: 'trailingWindow', label: 'Trailing Window (bars)', type: 'number', integer: true, value: '100' }
+      ]
+    }
+  };
+
+  var activeSimulation = null;
+
+  function openSimModal(key) {
+    var sim = SIMULATIONS[key];
+    activeSimulation = key;
+
+    document.getElementById('sim-modal-title').textContent = sim.title;
+    document.getElementById('sim-modal-status').textContent = '';
+
+    var fieldsContainer = document.getElementById('sim-modal-fields');
+    fieldsContainer.innerHTML = '';
+    sim.fields.forEach(function (field) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'modal-field';
+
+      var label = document.createElement('label');
+      label.textContent = field.label;
+      label.setAttribute('for', 'sim-field-' + field.name);
+
+      var input = document.createElement('input');
+      input.type = field.type;
+      input.id = 'sim-field-' + field.name;
+      input.name = field.name;
+      input.value = field.value;
+      input.required = true;
+      if (field.type === 'number') {
+        input.step = field.integer ? '1' : 'any';
+      }
+      if (field.type === 'text') {
+        input.style.textTransform = 'uppercase';
+      }
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      fieldsContainer.appendChild(wrapper);
+    });
+
+    document.getElementById('sim-modal-submit').disabled = false;
+    document.getElementById('sim-modal-backdrop').hidden = false;
+  }
+
+  function closeSimModal() {
+    document.getElementById('sim-modal-backdrop').hidden = true;
+    activeSimulation = null;
+  }
+
+  function submitSimModal(event) {
+    event.preventDefault();
+    var sim = SIMULATIONS[activeSimulation];
+    var status = document.getElementById('sim-modal-status');
+    var submitButton = document.getElementById('sim-modal-submit');
+
+    var body = {};
+    for (var i = 0; i < sim.fields.length; i++) {
+      var field = sim.fields[i];
+      var input = document.getElementById('sim-field-' + field.name);
+      if (field.type === 'number') {
+        var num = Number(input.value);
+        if (input.value.trim() === '' || isNaN(num)) {
+          status.textContent = field.label + ' must be a number.';
+          return false;
+        }
+        body[field.name] = field.integer ? Math.trunc(num) : num;
+      } else {
+        var value = input.value.trim();
+        if (!value) {
+          status.textContent = field.label + ' is required.';
+          return false;
+        }
+        body[field.name] = value.toUpperCase();
+      }
+    }
+
+    status.textContent = 'Running simulation… this can take a moment.';
+    submitButton.disabled = true;
+
+    fetch(sim.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.text().then(function (text) {
+            var message = text;
+            try {
+              var parsed = JSON.parse(text);
+              message = parsed.message || parsed.detail || text;
+            } catch (e) {
+              // not JSON, use raw text as-is
+            }
+            throw new Error(message || ('Simulation failed: ' + response.status));
+          });
+        }
+        return response.json();
+      })
+      .then(function () {
+        location.reload();
+      })
+      .catch(function (err) {
+        submitButton.disabled = false;
+        status.textContent = err.message;
+      });
+    return false;
+  }
+
   function backfillSymbol(event) {
     event.preventDefault();
     var input = document.getElementById('backfill-symbol');
